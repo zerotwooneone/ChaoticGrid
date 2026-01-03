@@ -23,6 +23,8 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
             .HasMaxLength(80)
             .IsRequired();
 
+        builder.Property(p => p.SilencedUntilUtc);
+
         builder.Property(p => p.GridTileIds)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonOptions),

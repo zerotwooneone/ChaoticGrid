@@ -22,6 +22,11 @@ public sealed class TileConfiguration : IEntityTypeConfiguration<Tile>
         builder.Property(t => t.IsApproved)
             .IsRequired();
 
+        builder.Property(t => t.ProposedByPlayerId);
+
+        builder.Property(t => t.IsConfirmed)
+            .IsRequired();
+
         builder.Property<Guid>("BoardId");
         builder.HasIndex("BoardId");
     }

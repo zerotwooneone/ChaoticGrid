@@ -40,6 +40,8 @@ app.UseCors("Default");
 
 app.MapBoardEndpoints();
 
+app.MapGet("/health", () => TypedResults.Ok(new { Status = "OK" }));
+
 app.MapHub<GameHub>("/hubs/game");
 
 app.MapFallbackToFile("index.html");

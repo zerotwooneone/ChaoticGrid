@@ -7,6 +7,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { firstValueFrom } from 'rxjs';
 
 import { ApiService } from '../../../core/services/api.service';
 import { SignalRService } from '../../../core/services/signalr.service';
@@ -67,7 +68,7 @@ export class LobbyComponent {
     try {
       this.isBusy.set(true);
 
-      const state = await this.api.createBoard(boardName).toPromise();
+      const state = await firstValueFrom(this.api.createBoard(boardName));
       if (!state) {
         throw new Error('Server did not return a board.');
       }

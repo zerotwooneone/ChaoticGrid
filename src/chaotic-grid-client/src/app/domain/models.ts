@@ -17,6 +17,7 @@ export interface TileDto {
   id: string;
   text: string;
   isApproved: boolean;
+  isConfirmed: boolean;
 }
 
 export interface PlayerDto {
@@ -24,6 +25,7 @@ export interface PlayerDto {
   displayName: string;
   gridTileIds: string[];
   roles: string[];
+  silencedUntilUtc: string | null;
 }
 
 export interface BoardStateDto {

@@ -18,6 +18,10 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
 
     public int MinimumApprovedTilesToStart { get; private set; } = 25;
 
+    public int VotesRequiredToConfirm { get; private set; } = 2;
+
+    public List<Vote> Votes { get; private set; } = [];
+
     public static Board Create(string name, int minimumApprovedTilesToStart = 25)
     {
         var board = new Board(BoardId.New(), name);
@@ -49,13 +53,41 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         MinimumApprovedTilesToStart = minimumApprovedTilesToStart;
     }
 
-    public Tile AddTileSuggestion(string text)
+    public Tile AddTileSuggestion(Guid proposedByPlayerId, string text)
     {
         EnsureNotFinished();
 
-        var tile = Tile.Create(text);
+        if (Players.All(p => p.Id != proposedByPlayerId))
+        {
+            throw new InvalidOperationException("Player does not exist.");
+        }
+
+        var tile = Tile.CreateSuggestion(text, proposedByPlayerId);
         Tiles.Add(tile);
         return tile;
+    }
+
+    public void RejectTile(Guid tileId, DateTime utcNow, TimeSpan silenceDuration)
+    {
+        EnsureNotFinished();
+
+        var index = Tiles.FindIndex(t => t.Id == tileId);
+        if (index < 0)
+        {
+            throw new InvalidOperationException("Tile does not exist.");
+        }
+
+        var tile = Tiles[index];
+        Tiles[index] = tile.Reject();
+
+        if (tile.ProposedByPlayerId is not null)
+        {
+            var proposer = Players.FirstOrDefault(p => p.Id == tile.ProposedByPlayerId.Value);
+            if (proposer is not null)
+            {
+                proposer.SilenceUntil(utcNow.Add(silenceDuration));
+            }
+        }
     }
 
     public void ApproveTile(Guid tileId)
@@ -69,6 +101,43 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         }
 
         Tiles[index] = Tiles[index].Approve();
+    }
+
+    public void CastVote(Guid playerId, Guid tileId, DateTime utcNow)
+    {
+        EnsureNotFinished();
+
+        var player = Players.FirstOrDefault(p => p.Id == playerId) ?? throw new InvalidOperationException("Player does not exist.");
+
+        if (player.IsSilenced(utcNow))
+        {
+            throw new InvalidOperationException("Player is silenced.");
+        }
+
+        var index = Tiles.FindIndex(t => t.Id == tileId);
+        if (index < 0)
+        {
+            throw new InvalidOperationException("Tile does not exist.");
+        }
+
+        var tile = Tiles[index];
+        if (tile.IsConfirmed)
+        {
+            return;
+        }
+
+        if (Votes.Any(v => v.PlayerId == playerId && v.TileId == tileId))
+        {
+            throw new InvalidOperationException("Player cannot vote twice on the same tile.");
+        }
+
+        Votes.Add(Vote.Create(playerId, tileId, new DateTimeOffset(utcNow, TimeSpan.Zero)));
+
+        var voteCount = Votes.Count(v => v.TileId == tileId);
+        if (voteCount >= VotesRequiredToConfirm)
+        {
+            Tiles[index] = tile.Confirm();
+        }
     }
 
     public void RemoveTile(Guid tileId)

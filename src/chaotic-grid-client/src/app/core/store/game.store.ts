@@ -5,9 +5,11 @@ import { BoardStateDto, PlayerDto, VoteRequest } from '../../domain/models';
 export class GameStore {
   private readonly boardStateInternal = signal<BoardStateDto | null>(null);
   private readonly localPlayerIdInternal = signal<string | null>(null);
+  private readonly pendingVotesInternal = signal<VoteRequest[]>([]);
 
   readonly boardState = this.boardStateInternal.asReadonly();
   readonly localPlayerId = this.localPlayerIdInternal.asReadonly();
+  readonly pendingVotes = this.pendingVotesInternal.asReadonly();
 
   readonly boardId = computed(() => this.boardStateInternal()?.boardId ?? null);
 
@@ -37,9 +39,13 @@ export class GameStore {
   clear(): void {
     this.localPlayerIdInternal.set(null);
     this.boardStateInternal.set(null);
+    this.pendingVotesInternal.set([]);
   }
 
-  // Placeholder until Match/Vote aggregate exists.
+  onVoteRequested(vote: VoteRequest): void {
+    this.pendingVotesInternal.update(v => [...v, vote]);
+  }
+
   onVote(_vote: VoteRequest): void {
     // no-op
   }

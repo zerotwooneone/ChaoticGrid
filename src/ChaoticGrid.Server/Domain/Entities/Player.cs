@@ -6,6 +6,8 @@ public sealed class Player(Guid id, string displayName)
 
     public List<string> Roles { get; private set; } = [];
 
+    public DateTime? SilencedUntilUtc { get; private set; }
+
     public Guid Id { get; } = id;
 
     public string DisplayName { get; } = string.IsNullOrWhiteSpace(displayName)
@@ -13,6 +15,8 @@ public sealed class Player(Guid id, string displayName)
         : displayName.Trim();
 
     public bool IsHost => Roles.Contains("Host");
+
+    public bool IsSilenced(DateTime utcNow) => SilencedUntilUtc is not null && SilencedUntilUtc.Value > utcNow;
 
     public static Player Create(Guid id, string displayName, bool isHost = false)
     {
@@ -23,6 +27,11 @@ public sealed class Player(Guid id, string displayName)
         }
 
         return player;
+    }
+
+    public void SilenceUntil(DateTime utcUntil)
+    {
+        SilencedUntilUtc = utcUntil;
     }
 
     public void AssignRandomizedGrid(IReadOnlyCollection<Tile> approvedTiles, int? seed = null)

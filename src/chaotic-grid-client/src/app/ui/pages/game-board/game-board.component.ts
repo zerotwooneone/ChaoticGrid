@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { firstValueFrom } from 'rxjs';
 
 import { ApiService } from '../../../core/services/api.service';
 import { GameStore } from '../../../core/store/game.store';
@@ -36,24 +37,22 @@ export class GameBoardComponent {
   });
 
   constructor() {
-    void this.loadIfNeeded();
-  }
+    effect(() => {
+      const id = this.boardId();
+      if (!id) {
+        void this.router.navigate(['/']);
+        return;
+      }
 
-  async loadIfNeeded(): Promise<void> {
-    const id = this.boardId();
-    if (!id) {
-      await this.router.navigate(['/']);
-      return;
-    }
+      const current = this.store.boardId();
+      if (current === id) {
+        return;
+      }
 
-    const current = this.store.boardId();
-    if (current === id) {
-      return;
-    }
-
-    const state = await this.api.getBoardState(id).toPromise();
-    if (state) {
-      this.store.setBoardState(state);
-    }
+      void untracked(async () => {
+        const state = await firstValueFrom(this.api.getBoardState(id));
+        this.store.setBoardState(state);
+      });
+    });
   }
 }

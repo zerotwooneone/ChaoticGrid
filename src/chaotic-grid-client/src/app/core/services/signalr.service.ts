@@ -1,18 +1,20 @@
-import { Injectable } from '@angular/core';
-import {
-  HubConnection,
-  HubConnectionBuilder,
-  HubConnectionState,
-  LogLevel
-} from '@microsoft/signalr';
+import { Inject, Injectable } from '@angular/core';
+import { HubConnection, HubConnectionState } from '@microsoft/signalr';
+import { firstValueFrom } from 'rxjs';
 import { BoardStateDto, VoteRequest } from '../../domain/models';
+import { ApiService } from './api.service';
 import { GameStore } from '../store/game.store';
+import { HUB_CONNECTION_FACTORY, HubConnectionFactory } from './hub-connection-factory';
 
 @Injectable({ providedIn: 'root' })
 export class SignalRService {
   private connection: HubConnection | null = null;
 
-  constructor(private readonly store: GameStore) {}
+  constructor(
+    private readonly store: GameStore,
+    private readonly api: ApiService,
+    @Inject(HUB_CONNECTION_FACTORY) private readonly createConnection: HubConnectionFactory
+  ) {}
 
   async ensureConnected(): Promise<void> {
     if (this.connection && this.connection.state === HubConnectionState.Connected) {
@@ -20,12 +22,11 @@ export class SignalRService {
     }
 
     if (!this.connection) {
-      const url = this.getHubUrl();
-      this.connection = new HubConnectionBuilder()
-        .withUrl(url)
-        .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
-        .configureLogging(LogLevel.Information)
-        .build();
+      this.connection = this.createConnection();
+
+      this.connection.onreconnected(() => {
+        void this.syncState();
+      });
 
       this.connection.on('BoardStateUpdated', (state: BoardStateDto) => {
         this.store.setBoardState(state);
@@ -34,9 +35,27 @@ export class SignalRService {
       this.connection.on('VoteCast', (vote: VoteRequest) => {
         this.store.onVote(vote);
       });
+
+      this.connection.on('VoteRequested', (vote: VoteRequest) => {
+        this.store.onVoteRequested(vote);
+      });
     }
 
     await this.connection.start();
+  }
+
+  async syncState(): Promise<void> {
+    const boardId = this.store.boardId();
+    if (!boardId) {
+      return;
+    }
+
+    try {
+      const state = await firstValueFrom(this.api.getBoardState(boardId));
+      this.store.setBoardState(state);
+    } catch {
+      // ignore; next server push will correct state
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -58,16 +77,17 @@ export class SignalRService {
 
   async proposeTile(boardId: string, text: string): Promise<void> {
     await this.ensureConnected();
-    await this.connection!.invoke('ProposeTile', boardId, text);
+
+    const playerId = this.store.localPlayerId();
+    if (!playerId) {
+      throw new Error('Cannot propose tile without a local player id.');
+    }
+
+    await this.connection!.invoke('ProposeTile', boardId, playerId, text);
   }
 
   async castVote(boardId: string, vote: VoteRequest): Promise<void> {
     await this.ensureConnected();
     await this.connection!.invoke('CastVote', boardId, vote);
-  }
-
-  private getHubUrl(): string {
-    // Assumes same origin; dev can use Angular proxy if desired.
-    return `${window.location.origin}/hubs/game`;
   }
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { TileDto } from '../../../domain/models';
 
@@ -7,7 +7,7 @@ import { TileDto } from '../../../domain/models';
   standalone: true,
   imports: [MatCardModule],
   template: `
-    <mat-card class="tile" [class.missing]="!tile" [class.approved]="tile?.isApproved">
+    <mat-card class="tile" [class.missing]="!tile" [class.approved]="tile?.isApproved" (click)="clicked.emit()">
       <mat-card-content>
         @if (tile) {
           {{ tile.text }}
@@ -45,4 +45,6 @@ import { TileDto } from '../../../domain/models';
 })
 export class TileCardComponent {
   @Input() tile: TileDto | null = null;
+
+  @Output() readonly clicked = new EventEmitter<void>();
 }
