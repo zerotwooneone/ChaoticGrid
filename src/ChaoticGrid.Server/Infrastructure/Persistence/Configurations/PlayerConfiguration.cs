@@ -26,7 +26,7 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
         builder.Property(p => p.GridTileIds)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonOptions),
-                v => JsonSerializer.Deserialize<List<Guid>>(v, JsonOptions) ?? [])
+                v => JsonSerializer.Deserialize<List<Guid>>(v, JsonOptions) ?? new List<Guid>())
             .Metadata.SetValueComparer(new ValueComparer<List<Guid>>(
                 (a, b) => a.SequenceEqual(b),
                 v => v.Aggregate(0, (acc, next) => HashCode.Combine(acc, next.GetHashCode())),
@@ -35,7 +35,7 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
         builder.Property(p => p.Roles)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonOptions),
-                v => JsonSerializer.Deserialize<List<string>>(v, JsonOptions) ?? [])
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonOptions) ?? new List<string>())
             .Metadata.SetValueComparer(new ValueComparer<List<string>>(
                 (a, b) => a.SequenceEqual(b),
                 v => v.Aggregate(0, (acc, next) => HashCode.Combine(acc, next.GetHashCode(StringComparison.Ordinal))),
