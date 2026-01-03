@@ -20,7 +20,7 @@
         <mat-card-subtitle>Status: {{ s.status }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <app-bingo-grid [gridTileIds]="store.gridTileIds()" [tilesById]="tilesById()"></app-bingo-grid>
+        <app-bingo-grid [gridTileIds]="gridTileIds()" [tilesById]="tilesById()"></app-bingo-grid>
       </mat-card-content>
     </mat-card>
   } @else {

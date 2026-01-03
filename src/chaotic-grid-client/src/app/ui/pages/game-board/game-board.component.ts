@@ -27,6 +27,8 @@ export class GameBoardComponent {
 
   readonly state = this.store.boardState;
 
+  readonly gridTileIds = this.store.gridTileIds;
+
   readonly tilesById = computed(() => {
     const tiles = this.store.tiles();
     const map = new Map<string, (typeof tiles)[number]>();
