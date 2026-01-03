@@ -102,3 +102,6 @@ Thumbs.db
 # Docker
 # ==============================================================================
 docker-compose.override.yml
+
+//dont commit app data
+app_data/
