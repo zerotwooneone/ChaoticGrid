@@ -1,7 +1,10 @@
 using ChaoticGrid.Server.Api.Dtos;
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+using ChaoticGrid.Server.Domain.Enums;
 using ChaoticGrid.Server.Domain.Interfaces;
+using ChaoticGrid.Server.Infrastructure.Security;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Security.Claims;
 
 namespace ChaoticGrid.Server.Api.Endpoints;
 
@@ -13,6 +16,8 @@ public static class BoardEndpoints
 
         group.MapPost("/", CreateBoard);
         group.MapPost("/{boardId:guid}/join", JoinBoard);
+        group.MapPost("/{boardId:guid}/invite", CreateInvite).RequireAuthorization();
+        group.MapPost("/join", JoinByInvite).RequireAuthorization();
         group.MapGet("/{boardId:guid}", GetBoardState);
 
         return endpoints;
@@ -43,6 +48,78 @@ public static class BoardEndpoints
     {
         var board = await repo.GetByIdAsync(new BoardId(boardId), ct);
         return board is null ? TypedResults.NotFound() : TypedResults.Ok(ToDto(board));
+    }
+
+    private static async Task<Results<Ok<CreateInviteResponse>, NotFound, ForbidHttpResult, BadRequest>> CreateInvite(
+        Guid boardId,
+        CreateInviteRequest request,
+        ClaimsPrincipal user,
+        IBoardRepository repo,
+        InviteService invites,
+        CancellationToken ct)
+    {
+        if (!HasPermission(user, GamePermission.ManageBoardRoles))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var board = await repo.GetByIdAsync(new BoardId(boardId), ct);
+        if (board is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (request.ExpiresInMinutes <= 0)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(request.ExpiresInMinutes);
+        var token = invites.CreateInviteToken(board.Id.Value, request.RoleId, expiresAtUtc);
+        return TypedResults.Ok(new CreateInviteResponse(token, expiresAtUtc));
+    }
+
+    private static async Task<Results<Ok<BoardStateDto>, NotFound, ForbidHttpResult, BadRequest>> JoinByInvite(
+        JoinByInviteRequest request,
+        ClaimsPrincipal user,
+        IBoardRepository repo,
+        InviteService invites,
+        CancellationToken ct)
+    {
+        if (!invites.TryValidate(request.Token, out var payload))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub"), out var userId))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var nickname = user.FindFirstValue("nickname") ?? "Player";
+
+        var board = await repo.GetByIdAsync(new BoardId(payload.BoardId), ct);
+        if (board is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // For now, treat invite acceptance as joining the game as a Player record.
+        board.AddPlayer(userId, nickname, isHost: false, seed: null);
+        await repo.UpdateAsync(board, ct);
+
+        return TypedResults.Ok(ToDto(board));
+    }
+
+    private static bool HasPermission(ClaimsPrincipal user, GamePermission required)
+    {
+        var raw = user.FindFirstValue("x-permissions");
+        if (!long.TryParse(raw, out var perms))
+        {
+            return false;
+        }
+
+        return (((GamePermission)perms) & required) == required;
     }
 
     private static BoardStateDto ToDto(Board board)

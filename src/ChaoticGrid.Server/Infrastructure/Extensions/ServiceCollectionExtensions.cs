@@ -1,6 +1,7 @@
 using ChaoticGrid.Server.Domain.Interfaces;
 using ChaoticGrid.Server.Infrastructure.Persistence;
 using ChaoticGrid.Server.Infrastructure.Persistence.Repositories;
+using ChaoticGrid.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,12 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
 
         services.AddScoped<IBoardRepository, SqliteBoardRepository>();
+        services.AddScoped<IUserRepository, SqliteUserRepository>();
+
+        services.AddSingleton<JwtTokenGenerator>();
+        services.AddSingleton<InitialSetupService>();
+        services.AddHostedService(sp => sp.GetRequiredService<InitialSetupService>());
+        services.AddSingleton<InviteService>();
 
         return services;
     }

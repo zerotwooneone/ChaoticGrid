@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
 using ChaoticGrid.Server.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -43,7 +44,10 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
                 v => v.Aggregate(0, (acc, next) => HashCode.Combine(acc, next.GetHashCode(StringComparison.Ordinal))),
                 v => v.ToList()));
 
-        builder.Property<Guid>("BoardId");
+        builder.Property<BoardId>("BoardId")
+            .HasConversion(
+                id => id.Value,
+                value => new BoardId(value));
         builder.HasIndex("BoardId");
     }
 }

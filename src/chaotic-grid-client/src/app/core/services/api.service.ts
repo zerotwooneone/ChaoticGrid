@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BoardStateDto, CreateBoardRequest, JoinBoardRequest } from '../../domain/models';
+import { AuthStatusResponse, SetupRequest, SetupResponse } from '../../domain/auth-models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -18,5 +19,17 @@ export class ApiService {
 
   getBoardState(boardId: string): Observable<BoardStateDto> {
     return this.http.get<BoardStateDto>(`/boards/${boardId}`);
+  }
+
+  getAuthStatus(): Observable<AuthStatusResponse> {
+    return this.http.get<AuthStatusResponse>('/auth/status');
+  }
+
+  setup(request: SetupRequest): Observable<SetupResponse> {
+    return this.http.post<SetupResponse>('/auth/setup', request);
+  }
+
+  joinByInvite(token: string): Observable<BoardStateDto> {
+    return this.http.post<BoardStateDto>('/boards/join', { token });
   }
 }
