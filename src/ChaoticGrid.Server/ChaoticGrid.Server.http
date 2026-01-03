@@ -1,0 +1,6 @@
+@ChaoticGrid.Server_HostAddress = http://localhost:5072
+
+GET {{ChaoticGrid.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

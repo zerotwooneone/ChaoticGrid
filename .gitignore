@@ -1,0 +1,104 @@
+﻿# ==============================================================================
+# C# / .NET Core
+# ==============================================================================
+## Build results
+[Bb]in/
+[Oo]bj/
+/out/
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## User-specific build property paths
+*.user.props
+
+## VS Code (if you or teammates use it)
+.vscode/
+
+## Visual Studio
+.vs/
+*_i.c
+*_p.c
+*.ncb
+*.trc
+*.fas
+*.inc
+*.meta
+*.pdb
+*.cache
+
+# ==============================================================================
+# JetBrains / Rider
+# ==============================================================================
+## Covers Rider, IntelliJ, ReSharper, etc.
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# Ignore everything in .idea...
+.idea/*
+# ...except shared run configurations
+!.idea/runConfigurations/
+
+# ==============================================================================
+# Angular / Node.js
+# ==============================================================================
+## Dependencies
+node_modules/
+
+## Angular Build Output
+/dist/
+/tmp/
+/out-tsc/
+/bazel-out/
+
+## Local Angular CLI settings
+.angular/
+
+## Cache
+.npm/
+.eslintcache
+
+## Yarn (if used)
+.yarn/
+yarn-error.log
+
+# ==============================================================================
+# Environment / Secrets
+# ==============================================================================
+## Never commit local settings or secrets
+appsettings.Development.json
+appsettings.Local.json
+*.env
+.env
+.env.local
+
+# ==============================================================================
+# SQLite
+# ==============================================================================
+## Don't commit the actual local database file
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ==============================================================================
+# OS Generated
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==============================================================================
+# Docker
+# ==============================================================================
+docker-compose.override.yml
