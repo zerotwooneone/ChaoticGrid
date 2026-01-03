@@ -1,0 +1,74 @@
+<div class="lobby">
+  <mat-card class="panel">
+    <mat-card-header>
+      <mat-card-title>Chaotic Grid</mat-card-title>
+      <mat-card-subtitle>Create a board or join an existing one</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (error()) {
+        <div class="error">{{ error() }}</div>
+      }
+
+      <div class="columns">
+        <div class="column">
+          <h2>Create</h2>
+
+          <form [formGroup]="createForm" (ngSubmit)="createBoard()">
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>Board name</mat-label>
+              <input matInput formControlName="boardName" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>Your display name</mat-label>
+              <input matInput formControlName="displayName" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>Seed (optional)</mat-label>
+              <input matInput type="number" formControlName="seed" />
+            </mat-form-field>
+
+            <button mat-raised-button color="primary" type="submit" [disabled]="isBusy()">
+              @if (isBusy()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                Create board
+              }
+            </button>
+          </form>
+        </div>
+
+        <div class="column">
+          <h2>Join</h2>
+
+          <form [formGroup]="joinForm" (ngSubmit)="joinBoard()">
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>Board ID</mat-label>
+              <input matInput formControlName="boardId" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>Your display name</mat-label>
+              <input matInput formControlName="displayName" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field">
+              <mat-label>Seed (optional)</mat-label>
+              <input matInput type="number" formControlName="seed" />
+            </mat-form-field>
+
+            <button mat-raised-button color="accent" type="submit" [disabled]="isBusy()">
+              @if (isBusy()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                Join board
+              }
+            </button>
+          </form>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

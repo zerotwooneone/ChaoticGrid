@@ -1,0 +1,23 @@
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.content {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  width: min(980px, 100%);
+}

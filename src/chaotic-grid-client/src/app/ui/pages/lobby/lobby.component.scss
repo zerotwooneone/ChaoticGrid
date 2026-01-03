@@ -1,0 +1,41 @@
+.lobby {
+  display: flex;
+  min-height: 100vh;
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel {
+  width: min(980px, 100%);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.column h2 {
+  margin: 0 0 12px 0;
+}
+
+.field {
+  width: 100%;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.error {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(244, 67, 54, 0.1);
+  color: #b71c1c;
+}
