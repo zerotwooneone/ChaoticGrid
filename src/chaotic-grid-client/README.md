@@ -1,59 +1,23 @@
-# ChaoticGridClient
+# Chaotic Grid - Client Architecture
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.9.
+The frontend is an **Angular 19** Single Page Application (SPA). Its primary design goal is **Simplicity** and **Resilience**. It is a visual projection of the server's state.
 
-## Development server
+## Architectural Guidelines
 
-To start a local development server, run:
+### 1. "Dumb" UI Components
+Components should not make decisions.
+- **Bad:** `if (user.role === 'admin') { showButton() }`
+- **Good:** `if (state.permissions.canDelete) { showButton() }`
+  Components receive input via **Angular Signals** and emit output via standard Events.
 
-```bash
-ng serve
-```
+### 2. Signal-Based State Management
+We use a centralized Signal Store to hold the current state of the board.
+1. **Action:** User clicks a button.
+2. **Command:** Client invokes a SignalR Hub method (`hub.invoke('Vote', ...)`).
+3. **Wait:** The client *does nothing* to its local model.
+4. **Reaction:** The server processes the command and broadcasts a `StateUpdated` event.
+5. **Render:** The client updates the Signal Store, and the UI automatically re-renders.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+### 3. Connectivity Handling
+- **Reconnection:** If the SignalR connection drops, the client automatically attempts to reconnect.
+- **Sync:** Upon reconnection, the client immediately requests a `SyncState` payload to ensure it didn't miss any votes while offline.
