@@ -6,18 +6,15 @@ namespace ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
 
 public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
 {
-    private readonly List<Tile> tiles = [];
-    private readonly List<Player> players = [];
-
     public string Name { get; private set; } = string.IsNullOrWhiteSpace(name)
         ? throw new ArgumentException("Board name cannot be empty.", nameof(name))
         : name.Trim();
 
     public BoardStatus Status { get; private set; } = BoardStatus.Draft;
 
-    public IReadOnlyList<Tile> Tiles => this.tiles;
+    public List<Tile> Tiles { get; private set; } = [];
 
-    public IReadOnlyList<Player> Players => this.players;
+    public List<Player> Players { get; private set; } = [];
 
     public int MinimumApprovedTilesToStart { get; private set; } = 25;
 
@@ -57,7 +54,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         EnsureNotFinished();
 
         var tile = Tile.Create(text);
-        this.tiles.Add(tile);
+        Tiles.Add(tile);
         return tile;
     }
 
@@ -65,20 +62,20 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
     {
         EnsureNotFinished();
 
-        var index = this.tiles.FindIndex(t => t.Id == tileId);
+        var index = Tiles.FindIndex(t => t.Id == tileId);
         if (index < 0)
         {
             throw new InvalidOperationException("Tile does not exist.");
         }
 
-        this.tiles[index] = this.tiles[index].Approve();
+        Tiles[index] = Tiles[index].Approve();
     }
 
     public void RemoveTile(Guid tileId)
     {
         EnsureDraft();
 
-        var removed = this.tiles.RemoveAll(t => t.Id == tileId);
+        var removed = Tiles.RemoveAll(t => t.Id == tileId);
         if (removed == 0)
         {
             throw new InvalidOperationException("Tile does not exist.");
@@ -89,13 +86,13 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
     {
         EnsureNotFinished();
 
-        if (this.players.Any(p => p.Id == playerId))
+        if (Players.Any(p => p.Id == playerId))
         {
             throw new InvalidOperationException("Player already exists.");
         }
 
         var player = Player.Create(playerId, displayName, isHost);
-        this.players.Add(player);
+        Players.Add(player);
 
         if (Status == BoardStatus.Active)
         {
@@ -115,7 +112,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
             throw new InvalidOperationException($"Cannot start: requires at least {MinimumApprovedTilesToStart} approved tiles.");
         }
 
-        foreach (var player in this.players)
+        foreach (var player in Players)
         {
             player.AssignRandomizedGrid(approved, seed is null ? null : seed + player.Id.GetHashCode());
         }
@@ -146,7 +143,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
                 CanApproveTiles: false);
         }
 
-        var player = this.players.FirstOrDefault(p => p.Id == userId.Value);
+        var player = Players.FirstOrDefault(p => p.Id == userId.Value);
         if (player is null)
         {
             return new PermissionSet(
@@ -169,7 +166,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
             CanApproveTiles: isHost && Status != BoardStatus.Finished);
     }
 
-    private IReadOnlyCollection<Tile> GetApprovedTiles() => this.tiles.Where(t => t.IsApproved).ToArray();
+    private IReadOnlyCollection<Tile> GetApprovedTiles() => Tiles.Where(t => t.IsApproved).ToArray();
 
     private void EnsureDraft()
     {

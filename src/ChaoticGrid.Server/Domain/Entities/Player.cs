@@ -1,10 +1,10 @@
-using ChaoticGrid.Server.Domain.Entities;
-
 namespace ChaoticGrid.Server.Domain.Entities;
 
 public sealed class Player(Guid id, string displayName)
 {
-    private readonly Tile?[] grid = new Tile?[25];
+    public List<Guid> GridTileIds { get; private set; } = [];
+
+    public List<string> Roles { get; private set; } = [];
 
     public Guid Id { get; } = id;
 
@@ -12,14 +12,16 @@ public sealed class Player(Guid id, string displayName)
         ? throw new ArgumentException("Display name cannot be empty.", nameof(displayName))
         : displayName.Trim();
 
-    public IReadOnlyList<Tile?> Grid => this.grid;
-
-    public bool IsHost { get; private set; }
+    public bool IsHost => Roles.Contains("Host");
 
     public static Player Create(Guid id, string displayName, bool isHost = false)
     {
         var player = new Player(id, displayName);
-        player.IsHost = isHost;
+        if (isHost)
+        {
+            player.Roles.Add("Host");
+        }
+
         return player;
     }
 
@@ -47,10 +49,10 @@ public sealed class Player(Guid id, string displayName)
             (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
         }
 
-        Array.Clear(this.grid);
+        GridTileIds.Clear();
         for (var i = 0; i < 25; i++)
         {
-            this.grid[i] = shuffled[i];
+            GridTileIds.Add(shuffled[i].Id);
         }
     }
 }
