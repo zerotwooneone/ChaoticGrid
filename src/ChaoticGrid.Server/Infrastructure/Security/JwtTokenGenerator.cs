@@ -14,7 +14,7 @@ public sealed class JwtTokenGenerator(IConfiguration configuration)
         var jwtSection = configuration.GetSection("Jwt");
         var issuer = jwtSection["Issuer"] ?? "ChaoticGrid";
         var audience = jwtSection["Audience"] ?? "ChaoticGrid";
-        var signingKey = jwtSection["SigningKey"] ?? "dev-only-signing-key-change-me";
+        var signingKey = jwtSection["SigningKey"] ?? "dev-only-signing-key-change-me some long key blah blah blah";
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
