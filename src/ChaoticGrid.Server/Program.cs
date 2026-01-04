@@ -15,7 +15,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         var jwtSection = builder.Configuration.GetSection("Jwt");
         var issuer = jwtSection["Issuer"] ?? "ChaoticGrid";
         var audience = jwtSection["Audience"] ?? "ChaoticGrid";
-        var signingKey = jwtSection["SigningKey"] ?? "dev-only-signing-key-change-me";
+        var signingKey = jwtSection["SigningKey"] ?? "dev-only-signing-key-change-me some long key blah blah blah";
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
