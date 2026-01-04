@@ -34,22 +34,21 @@ public static class TileEndpoints
         {
             return TypedResults.Forbid();
         }
-
-        if (!TryGetUserId(user, out var userId))
-        {
-            return TypedResults.Forbid();
-        }
-
         var board = await boards.GetByIdAsync(new BoardId(request.BoardId), ct);
         if (board is null)
         {
             return TypedResults.NotFound();
         }
 
+        if (board.Players.All(p => p.Id != request.PlayerId))
+        {
+            return TypedResults.BadRequest();
+        }
+
         Tile tile;
         try
         {
-            tile = board.AddTileSuggestion(userId, request.Text);
+            tile = board.AddTileSuggestion(request.PlayerId, request.Text);
         }
         catch
         {

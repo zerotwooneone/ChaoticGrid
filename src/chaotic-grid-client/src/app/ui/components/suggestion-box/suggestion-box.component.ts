@@ -91,9 +91,16 @@ export class SuggestionBoxComponent {
 
     try {
       this.busy.set(true);
+
+      const playerId = this.store.localPlayerId();
+      if (!playerId) {
+        throw new Error('Cannot suggest tile without joining the board.');
+      }
+
       const tile = await firstValueFrom(
         this.api.suggestTile({
           boardId: this.boardId,
+          playerId,
           text: this.form.controls.text.value.trim()
         })
       );

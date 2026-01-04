@@ -2,6 +2,7 @@ import { TileStatus } from './models';
 
 export interface SuggestTileRequest {
   boardId: string;
+  playerId: string;
   text: string;
 }
 
