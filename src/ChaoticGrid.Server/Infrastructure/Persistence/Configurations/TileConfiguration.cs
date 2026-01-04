@@ -1,5 +1,6 @@
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
 using ChaoticGrid.Server.Domain.Entities;
+using ChaoticGrid.Server.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -20,18 +21,22 @@ public sealed class TileConfiguration : IEntityTypeConfiguration<Tile>
             .HasMaxLength(200)
             .IsRequired();
 
-        builder.Property(t => t.IsApproved)
+        builder.Ignore(t => t.IsApproved);
+
+        builder.Property(t => t.Status)
+            .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(t => t.ProposedByPlayerId);
+        builder.Property(t => t.CreatedByUserId)
+            .IsRequired();
 
         builder.Property(t => t.IsConfirmed)
             .IsRequired();
 
-        builder.Property<BoardId>("BoardId")
+        builder.Property(t => t.BoardId)
             .HasConversion(
                 id => id.Value,
                 value => new BoardId(value));
-        builder.HasIndex("BoardId");
+        builder.HasIndex(t => t.BoardId);
     }
 }

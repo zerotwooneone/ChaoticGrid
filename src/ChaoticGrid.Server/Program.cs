@@ -71,6 +71,8 @@ app.MapAuthEndpoints();
 
 app.MapBoardEndpoints();
 
+app.MapTileEndpoints();
+
 app.MapGet("/health", () => TypedResults.Ok(new { Status = "OK" }));
 
 app.MapHub<GameHub>("/hubs/game");

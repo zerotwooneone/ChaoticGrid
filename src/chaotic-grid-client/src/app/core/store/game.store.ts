@@ -1,15 +1,21 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { BoardStateDto, PlayerDto, VoteRequest } from '../../domain/models';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { BoardStateDto, CompletionVoteStartedDto, PlayerDto, TileDto, VoteRequest } from '../../domain/models';
+import { ApiService } from '../services/api.service';
 
 @Injectable({ providedIn: 'root' })
 export class GameStore {
+  private readonly api = inject(ApiService);
+
   private readonly boardStateInternal = signal<BoardStateDto | null>(null);
   private readonly localPlayerIdInternal = signal<string | null>(null);
   private readonly pendingVotesInternal = signal<VoteRequest[]>([]);
+  private readonly pendingCompletionVotesInternal = signal<CompletionVoteStartedDto[]>([]);
 
   readonly boardState = this.boardStateInternal.asReadonly();
   readonly localPlayerId = this.localPlayerIdInternal.asReadonly();
   readonly pendingVotes = this.pendingVotesInternal.asReadonly();
+  readonly pendingCompletionVotes = this.pendingCompletionVotesInternal.asReadonly();
 
   readonly boardId = computed(() => this.boardStateInternal()?.boardId ?? null);
 
@@ -32,6 +38,31 @@ export class GameStore {
     this.boardStateInternal.set(state);
   }
 
+  async syncState(): Promise<void> {
+    const boardId = this.boardId();
+    if (!boardId) {
+      return;
+    }
+
+    const state = await firstValueFrom(this.api.getBoardState(boardId));
+    this.setBoardState(state);
+  }
+
+  upsertTile(tile: TileDto): void {
+    this.boardStateInternal.update(s => {
+      if (!s) {
+        return s;
+      }
+
+      const idx = s.tiles.findIndex(t => t.id === tile.id);
+      const tiles = idx >= 0
+        ? s.tiles.map(t => (t.id === tile.id ? tile : t))
+        : [...s.tiles, tile];
+
+      return { ...s, tiles };
+    });
+  }
+
   setLocalPlayer(playerId: string): void {
     this.localPlayerIdInternal.set(playerId);
   }
@@ -40,10 +71,26 @@ export class GameStore {
     this.localPlayerIdInternal.set(null);
     this.boardStateInternal.set(null);
     this.pendingVotesInternal.set([]);
+    this.pendingCompletionVotesInternal.set([]);
   }
 
   onVoteRequested(vote: VoteRequest): void {
     this.pendingVotesInternal.update(v => [...v, vote]);
+  }
+
+  onCompletionVoteRequested(vote: CompletionVoteStartedDto): void {
+    this.pendingCompletionVotesInternal.update(v => [...v, vote]);
+  }
+
+  markTileConfirmed(tileId: string): void {
+    this.boardStateInternal.update(s => {
+      if (!s) {
+        return s;
+      }
+
+      const tiles = s.tiles.map(t => (t.id === tileId ? { ...t, isConfirmed: true } : t));
+      return { ...s, tiles };
+    });
   }
 
   onVote(_vote: VoteRequest): void {

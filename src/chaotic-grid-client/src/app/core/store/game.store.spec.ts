@@ -1,23 +1,35 @@
 import { TestBed } from '@angular/core/testing';
 
 import { GameStore } from './game.store';
-import { VoteRequest } from '../../domain/models';
+import { CompletionVoteStartedDto } from '../../domain/models';
+import { ApiService } from '../services/api.service';
 
 describe('GameStore', () => {
-  it('should add pending vote when VoteRequested is received', () => {
-    TestBed.configureTestingModule({});
+  it('should add pending completion vote when VoteRequested is received', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: ApiService,
+          useValue: {
+            getBoardState: () => {
+              throw new Error('Not used in this test.');
+            }
+          }
+        }
+      ]
+    });
 
     const store = TestBed.inject(GameStore);
 
-    const vote: VoteRequest = {
-      playerId: crypto.randomUUID(),
+    const vote: CompletionVoteStartedDto = {
+      proposerId: crypto.randomUUID(),
       tileId: crypto.randomUUID()
     };
 
-    expect(store.pendingVotes()).toEqual([]);
+    expect(store.pendingCompletionVotes()).toEqual([]);
 
-    store.onVoteRequested(vote);
+    store.onCompletionVoteRequested(vote);
 
-    expect(store.pendingVotes()).toEqual([vote]);
+    expect(store.pendingCompletionVotes()).toEqual([vote]);
   });
 });

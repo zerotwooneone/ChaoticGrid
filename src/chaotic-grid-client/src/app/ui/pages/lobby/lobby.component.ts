@@ -78,7 +78,7 @@ export class LobbyComponent {
 
       await this.signalr.joinBoard(state.boardId, playerId, displayName, true, seed);
 
-      await this.router.navigate(['/board', state.boardId]);
+      await this.router.navigate(['/lobby', state.boardId]);
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'Failed to create board.');
     } finally {
@@ -103,7 +103,7 @@ export class LobbyComponent {
 
       await this.signalr.joinBoard(boardId, playerId, displayName, false, seed);
 
-      await this.router.navigate(['/board', boardId]);
+      await this.router.navigate(['/lobby', boardId]);
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'Failed to join board.');
     } finally {

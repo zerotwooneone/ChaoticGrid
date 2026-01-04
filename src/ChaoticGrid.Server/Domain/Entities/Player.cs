@@ -43,9 +43,9 @@ public sealed class Player(Guid id, string displayName)
 
         var tiles = approvedTiles.Where(t => t.IsApproved).ToArray();
 
-        if (tiles.Length < 25)
+        if (tiles.Length < 24)
         {
-            throw new InvalidOperationException("At least 25 approved tiles are required to generate a 5x5 grid.");
+            throw new InvalidOperationException("At least 24 approved tiles are required to generate a 5x5 grid.");
         }
 
         var rng = seed is null ? Random.Shared : new Random(seed.Value);
@@ -59,9 +59,11 @@ public sealed class Player(Guid id, string displayName)
         }
 
         GridTileIds.Clear();
-        for (var i = 0; i < 25; i++)
+        for (var i = 0; i < 24; i++)
         {
             GridTileIds.Add(shuffled[i].Id);
         }
+
+        GridTileIds.Insert(12, Guid.Empty);
     }
 }

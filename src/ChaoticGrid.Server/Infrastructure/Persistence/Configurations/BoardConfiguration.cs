@@ -49,7 +49,7 @@ public sealed class BoardConfiguration : IEntityTypeConfiguration<Board>
 
         builder.HasMany(b => b.Tiles)
             .WithOne()
-            .HasForeignKey("BoardId")
+            .HasForeignKey(t => t.BoardId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(b => b.Players)

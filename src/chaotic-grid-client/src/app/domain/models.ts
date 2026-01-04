@@ -4,6 +4,12 @@ export enum BoardStatus {
   Finished = 2
 }
 
+export enum TileStatus {
+  Pending = 0,
+  Approved = 1,
+  Rejected = 2
+}
+
 export interface CreateBoardRequest {
   name: string;
 }
@@ -13,11 +19,27 @@ export interface VoteRequest {
   tileId: string;
 }
 
+export interface CompletionVoteRequest {
+  tileId: string;
+  isYes: boolean;
+}
+
+export interface CompletionVoteStartedDto {
+  tileId: string;
+  proposerId: string;
+}
+
+export interface TileConfirmedDto {
+  tileId: string;
+}
+
 export interface TileDto {
   id: string;
   text: string;
   isApproved: boolean;
   isConfirmed: boolean;
+  status: TileStatus;
+  createdByUserId: string;
 }
 
 export interface PlayerDto {

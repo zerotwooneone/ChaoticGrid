@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@angular/core';
 import { HubConnection, HubConnectionState } from '@microsoft/signalr';
 import { firstValueFrom } from 'rxjs';
-import { BoardStateDto, VoteRequest } from '../../domain/models';
+import { BoardStateDto, CompletionVoteRequest, CompletionVoteStartedDto, TileConfirmedDto, TileDto, VoteRequest } from '../../domain/models';
 import { ApiService } from './api.service';
 import { GameStore } from '../store/game.store';
 import { HUB_CONNECTION_FACTORY, HubConnectionFactory } from './hub-connection-factory';
@@ -36,8 +36,24 @@ export class SignalRService {
         this.store.onVote(vote);
       });
 
-      this.connection.on('VoteRequested', (vote: VoteRequest) => {
-        this.store.onVoteRequested(vote);
+      this.connection.on('VoteRequested', (vote: CompletionVoteStartedDto) => {
+        this.store.onCompletionVoteRequested(vote);
+      });
+
+      this.connection.on('TileConfirmed', (tile: TileConfirmedDto) => {
+        this.store.markTileConfirmed(tile.tileId);
+      });
+
+      this.connection.on('TileSuggested', (tile: TileDto) => {
+        this.store.upsertTile(tile);
+      });
+
+      this.connection.on('TileModerated', (tile: TileDto) => {
+        this.store.upsertTile(tile);
+      });
+
+      this.connection.on('GameStarted', (state: BoardStateDto) => {
+        this.store.setBoardState(state);
       });
     }
 
@@ -89,5 +105,27 @@ export class SignalRService {
   async castVote(boardId: string, vote: VoteRequest): Promise<void> {
     await this.ensureConnected();
     await this.connection!.invoke('CastVote', boardId, vote);
+  }
+
+  async proposeCompletion(boardId: string, tileId: string): Promise<void> {
+    await this.ensureConnected();
+
+    const playerId = this.store.localPlayerId();
+    if (!playerId) {
+      throw new Error('Cannot propose completion without a local player id.');
+    }
+
+    await this.connection!.invoke('ProposeCompletion', boardId, playerId, tileId);
+  }
+
+  async castCompletionVote(boardId: string, vote: CompletionVoteRequest): Promise<void> {
+    await this.ensureConnected();
+
+    const playerId = this.store.localPlayerId();
+    if (!playerId) {
+      throw new Error('Cannot cast completion vote without a local player id.');
+    }
+
+    await this.connection!.invoke('CastCompletionVote', boardId, playerId, vote);
   }
 }

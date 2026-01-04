@@ -1,27 +1,31 @@
+using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+using ChaoticGrid.Server.Domain.Enums;
+
 namespace ChaoticGrid.Server.Domain.Entities;
 
-public sealed record Tile(Guid Id, string Text, bool IsApproved, Guid? ProposedByPlayerId, bool IsConfirmed)
+public sealed record Tile(Guid Id, BoardId BoardId, string Text, TileStatus Status, Guid CreatedByUserId, bool IsConfirmed)
 {
-    public static Tile Create(string text)
+    public bool IsApproved => Status == TileStatus.Approved;
+
+    public static Tile CreateSuggestion(BoardId boardId, string text, Guid createdByUserId)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             throw new ArgumentException("Tile text cannot be empty.", nameof(text));
         }
 
+        if (createdByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("CreatedByUserId is required.", nameof(createdByUserId));
+        }
+
         var normalized = text.Trim();
-        return new Tile(Guid.NewGuid(), normalized, IsApproved: false, ProposedByPlayerId: null, IsConfirmed: false);
+        return new Tile(Guid.NewGuid(), boardId, normalized, TileStatus.Pending, createdByUserId, IsConfirmed: false);
     }
 
-    public static Tile CreateSuggestion(string text, Guid proposedByPlayerId)
-    {
-        var tile = Create(text);
-        return tile with { ProposedByPlayerId = proposedByPlayerId };
-    }
+    public Tile Approve() => this with { Status = TileStatus.Approved };
 
-    public Tile Approve() => this with { IsApproved = true };
-
-    public Tile Reject() => this with { IsApproved = false };
+    public Tile Reject() => this with { Status = TileStatus.Rejected };
 
     public Tile Confirm() => this with { IsConfirmed = true };
 }

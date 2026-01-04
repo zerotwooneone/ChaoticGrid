@@ -16,13 +16,13 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
 
     public List<Player> Players { get; private set; } = [];
 
-    public int MinimumApprovedTilesToStart { get; private set; } = 25;
+    public int MinimumApprovedTilesToStart { get; private set; } = 24;
 
     public int VotesRequiredToConfirm { get; private set; } = 2;
 
     public List<Vote> Votes { get; private set; } = [];
 
-    public static Board Create(string name, int minimumApprovedTilesToStart = 25)
+    public static Board Create(string name, int minimumApprovedTilesToStart = 24)
     {
         var board = new Board(BoardId.New(), name);
         board.SetMinimumApprovedTilesToStart(minimumApprovedTilesToStart);
@@ -53,16 +53,16 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         MinimumApprovedTilesToStart = minimumApprovedTilesToStart;
     }
 
-    public Tile AddTileSuggestion(Guid proposedByPlayerId, string text)
+    public Tile AddTileSuggestion(Guid createdByUserId, string text)
     {
         EnsureNotFinished();
 
-        if (Players.All(p => p.Id != proposedByPlayerId))
+        if (Players.All(p => p.Id != createdByUserId))
         {
             throw new InvalidOperationException("Player does not exist.");
         }
 
-        var tile = Tile.CreateSuggestion(text, proposedByPlayerId);
+        var tile = Tile.CreateSuggestion(Id, text, createdByUserId);
         Tiles.Add(tile);
         return tile;
     }
@@ -80,9 +80,9 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         var tile = Tiles[index];
         Tiles[index] = tile.Reject();
 
-        if (tile.ProposedByPlayerId is not null)
+        if (tile.CreatedByUserId != Guid.Empty)
         {
-            var proposer = Players.FirstOrDefault(p => p.Id == tile.ProposedByPlayerId.Value);
+            var proposer = Players.FirstOrDefault(p => p.Id == tile.CreatedByUserId);
             if (proposer is not null)
             {
                 proposer.SilenceUntil(utcNow.Add(silenceDuration));
@@ -138,6 +138,25 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         {
             Tiles[index] = tile.Confirm();
         }
+    }
+
+    public void ConfirmTile(Guid tileId)
+    {
+        EnsureNotFinished();
+
+        var index = Tiles.FindIndex(t => t.Id == tileId);
+        if (index < 0)
+        {
+            throw new InvalidOperationException("Tile does not exist.");
+        }
+
+        var tile = Tiles[index];
+        if (tile.IsConfirmed)
+        {
+            return;
+        }
+
+        Tiles[index] = tile.Confirm();
     }
 
     public void RemoveTile(Guid tileId)

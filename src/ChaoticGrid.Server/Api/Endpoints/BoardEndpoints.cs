@@ -2,8 +2,12 @@ using ChaoticGrid.Server.Api.Dtos;
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
 using ChaoticGrid.Server.Domain.Enums;
 using ChaoticGrid.Server.Domain.Interfaces;
+using ChaoticGrid.Server.Infrastructure.Hubs;
+using ChaoticGrid.Server.Infrastructure.Persistence;
 using ChaoticGrid.Server.Infrastructure.Security;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace ChaoticGrid.Server.Api.Endpoints;
@@ -18,6 +22,7 @@ public static class BoardEndpoints
         group.MapPost("/{boardId:guid}/join", JoinBoard);
         group.MapPost("/{boardId:guid}/invite", CreateInvite).RequireAuthorization();
         group.MapPost("/join", JoinByInvite).RequireAuthorization();
+        group.MapPost("/{boardId:guid}/start", StartBoard).RequireAuthorization();
         group.MapGet("/{boardId:guid}", GetBoardState);
 
         return endpoints;
@@ -48,6 +53,45 @@ public static class BoardEndpoints
     {
         var board = await repo.GetByIdAsync(new BoardId(boardId), ct);
         return board is null ? TypedResults.NotFound() : TypedResults.Ok(ToDto(board));
+    }
+
+    private static async Task<Results<Ok<BoardStateDto>, NotFound, ForbidHttpResult, BadRequest>> StartBoard(
+        Guid boardId,
+        ClaimsPrincipal user,
+        AppDbContext db,
+        IHubContext<GameHub, IGameClient> hub,
+        CancellationToken ct)
+    {
+        if (!HasPermission(user, GamePermission.ModifyBoard))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var board = await db.Boards.FirstOrDefaultAsync(b => b.Id == new BoardId(boardId), ct);
+        if (board is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        try
+        {
+            board.Start(seed: null);
+            db.Boards.Update(board);
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            return TypedResults.BadRequest();
+        }
+
+        var dto = ToDto(board);
+        await hub.Clients.Group($"board:{boardId:D}").GameStarted(dto);
+        await hub.Clients.Group($"board:{boardId:D}").BoardStateUpdated(dto);
+        return TypedResults.Ok(dto);
     }
 
     private static async Task<Results<Ok<CreateInviteResponse>, NotFound, ForbidHttpResult, BadRequest>> CreateInvite(
@@ -129,7 +173,7 @@ public static class BoardEndpoints
             Name: board.Name,
             Status: board.Status,
             MinimumApprovedTilesToStart: board.MinimumApprovedTilesToStart,
-            Tiles: board.Tiles.Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed)).ToArray(),
+            Tiles: board.Tiles.Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByUserId)).ToArray(),
             Players: board.Players.Select(p => new PlayerDto(p.Id, p.DisplayName, p.GridTileIds.ToArray(), p.Roles.ToArray(), p.SilencedUntilUtc)).ToArray());
     }
 

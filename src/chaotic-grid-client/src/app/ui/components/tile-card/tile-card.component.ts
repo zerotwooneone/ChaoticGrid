@@ -7,7 +7,7 @@ import { TileDto } from '../../../domain/models';
   standalone: true,
   imports: [MatCardModule],
   template: `
-    <mat-card class="tile" [class.missing]="!tile" [class.approved]="tile?.isApproved" (click)="clicked.emit()">
+    <mat-card class="tile" [class.missing]="!tile" [class.approved]="tile?.isApproved" [class.confirmed]="tile?.isConfirmed" (click)="clicked.emit()">
       <mat-card-content>
         @if (tile) {
           {{ tile.text }}
@@ -30,6 +30,10 @@ import { TileDto } from '../../../domain/models';
 
       .tile.approved {
         outline: 2px solid rgba(76, 175, 80, 0.6);
+      }
+
+      .tile.confirmed {
+        outline: 3px solid rgba(33, 150, 243, 0.7);
       }
 
       .tile.missing {

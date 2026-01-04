@@ -54,6 +54,10 @@ export class GameBoardComponent {
       void untracked(async () => {
         const state = await firstValueFrom(this.api.getBoardState(id));
         this.store.setBoardState(state);
+
+        if (state.status === 0) {
+          void this.router.navigate(['/lobby', id]);
+        }
       });
     });
   }

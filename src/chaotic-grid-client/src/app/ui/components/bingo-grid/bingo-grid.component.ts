@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { TileDto } from '../../../domain/models';
 import { TileCardComponent } from '../tile-card/tile-card.component';
@@ -11,7 +11,7 @@ import { TileCardComponent } from '../tile-card/tile-card.component';
     <mat-grid-list cols="5" rowHeight="1:1" gutterSize="8">
       @for (cell of cells(); track $index) {
         <mat-grid-tile>
-          <app-tile-card [tile]="cell"></app-tile-card>
+          <app-tile-card [tile]="cell" (clicked)="tileClicked.emit(cell?.id ?? null)"></app-tile-card>
         </mat-grid-tile>
       }
     </mat-grid-list>
@@ -31,6 +31,8 @@ export class BingoGridComponent {
   set tilesById(value: Map<string, TileDto>) {
     this.tilesByIdInternal.set(value ?? new Map());
   }
+
+  @Output() readonly tileClicked = new EventEmitter<string | null>();
 
   readonly cells = computed(() => {
     const ids = this.gridTileIdsInternal();

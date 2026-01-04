@@ -1,4 +1,5 @@
 using ChaoticGrid.Server.Domain.Interfaces;
+using ChaoticGrid.Server.Domain.Services;
 using ChaoticGrid.Server.Infrastructure.Persistence;
 using ChaoticGrid.Server.Infrastructure.Persistence.Repositories;
 using ChaoticGrid.Server.Infrastructure.Security;
@@ -19,6 +20,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IBoardRepository, SqliteBoardRepository>();
         services.AddScoped<IUserRepository, SqliteUserRepository>();
+
+        services.AddSingleton<GridGeneratorService>();
+        services.AddSingleton<MatchManager>();
 
         services.AddSingleton<JwtTokenGenerator>();
         services.AddSingleton<InitialSetupService>();
