@@ -1,10 +1,12 @@
+using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+
 namespace ChaoticGrid.Server.Domain.ValueObjects;
 
-public sealed record Vote(Guid PlayerId, Guid TileId, DateTimeOffset CastAt)
+public sealed record Vote(PlayerId PlayerId, Guid TileId, DateTimeOffset CastAt)
 {
-    public static Vote Create(Guid playerId, Guid tileId, DateTimeOffset? castAt = null)
+    public static Vote Create(PlayerId playerId, Guid tileId, DateTimeOffset? castAt = null)
     {
-        if (playerId == Guid.Empty)
+        if (playerId.Value == Guid.Empty)
         {
             throw new ArgumentException("PlayerId cannot be empty.", nameof(playerId));
         }

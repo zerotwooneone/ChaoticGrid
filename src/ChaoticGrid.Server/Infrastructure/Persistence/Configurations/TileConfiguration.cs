@@ -27,7 +27,10 @@ public sealed class TileConfiguration : IEntityTypeConfiguration<Tile>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(t => t.CreatedByUserId)
+        builder.Property(t => t.CreatedByPlayerId)
+            .HasConversion(
+                id => id.Value,
+                value => new PlayerId(value))
             .IsRequired();
 
         builder.Property(t => t.IsConfirmed)

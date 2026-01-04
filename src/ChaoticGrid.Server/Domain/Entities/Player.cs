@@ -1,6 +1,9 @@
+using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
+
 namespace ChaoticGrid.Server.Domain.Entities;
 
-public sealed class Player(Guid id, string displayName)
+public sealed class Player(PlayerId id, UserId ownerUserId, string displayName)
 {
     public List<Guid> GridTileIds { get; private set; } = [];
 
@@ -8,7 +11,9 @@ public sealed class Player(Guid id, string displayName)
 
     public DateTime? SilencedUntilUtc { get; private set; }
 
-    public Guid Id { get; } = id;
+    public PlayerId Id { get; } = id;
+
+    public UserId OwnerUserId { get; } = ownerUserId;
 
     public string DisplayName { get; } = string.IsNullOrWhiteSpace(displayName)
         ? throw new ArgumentException("Display name cannot be empty.", nameof(displayName))
@@ -18,9 +23,9 @@ public sealed class Player(Guid id, string displayName)
 
     public bool IsSilenced(DateTime utcNow) => SilencedUntilUtc is not null && SilencedUntilUtc.Value > utcNow;
 
-    public static Player Create(Guid id, string displayName, bool isHost = false)
+    public static Player Create(PlayerId id, UserId ownerUserId, string displayName, bool isHost = false)
     {
-        var player = new Player(id, displayName);
+        var player = new Player(id, ownerUserId, displayName);
         if (isHost)
         {
             player.Roles.Add("Host");

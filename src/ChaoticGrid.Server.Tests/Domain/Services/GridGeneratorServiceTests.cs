@@ -14,7 +14,7 @@ public sealed class GridGeneratorServiceTests
         var boardId = new BoardId(Guid.NewGuid());
 
         var tiles = Enumerable.Range(0, 30)
-            .Select(i => Tile.CreateSuggestion(boardId, $"Tile {i}", Guid.NewGuid()).Approve())
+            .Select(i => Tile.CreateSuggestion(boardId, $"Tile {i}", new PlayerId(Guid.NewGuid())).Approve())
             .ToList();
 
         var grid = svc.Generate(tiles, seed: 123);
@@ -34,7 +34,7 @@ public sealed class GridGeneratorServiceTests
         var boardId = new BoardId(Guid.NewGuid());
 
         var tiles = Enumerable.Range(0, 30)
-            .Select(i => Tile.CreateSuggestion(boardId, $"Tile {i}", Guid.NewGuid()).Approve())
+            .Select(i => Tile.CreateSuggestion(boardId, $"Tile {i}", new PlayerId(Guid.NewGuid())).Approve())
             .ToList();
 
         var a = svc.Generate(tiles, seed: 999);
@@ -50,7 +50,7 @@ public sealed class GridGeneratorServiceTests
         var boardId = new BoardId(Guid.NewGuid());
 
         var tiles = Enumerable.Range(0, 23)
-            .Select(i => Tile.CreateSuggestion(boardId, $"Tile {i}", Guid.NewGuid()).Approve())
+            .Select(i => Tile.CreateSuggestion(boardId, $"Tile {i}", new PlayerId(Guid.NewGuid())).Approve())
             .ToList();
 
         Assert.Throws<InvalidOperationException>(() => svc.Generate(tiles, seed: 1));

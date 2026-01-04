@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ChaoticGrid.Server\ChaoticGrid.Server.csproj" />
+    <ProjectReference Include="..\ChaoticGrid.Server\ChaoticGrid.Server.csproj" />
   </ItemGroup>
 
 </Project>

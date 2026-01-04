@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,8 +39,6 @@ export class LobbyComponent {
   readonly isBusy = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly suggestedPlayerId = computed(() => crypto.randomUUID());
-
   readonly createForm = this.fb.nonNullable.group({
     boardName: ['', [Validators.required, Validators.maxLength(200)]],
     displayName: ['', [Validators.required, Validators.maxLength(80)]],
@@ -63,7 +61,6 @@ export class LobbyComponent {
     const boardName = this.createForm.controls.boardName.value;
     const displayName = this.createForm.controls.displayName.value;
     const seed = this.createForm.controls.seed.value;
-    const playerId = this.suggestedPlayerId();
 
     try {
       this.isBusy.set(true);
@@ -74,9 +71,8 @@ export class LobbyComponent {
       }
 
       this.store.setBoardState(state);
-      this.store.setLocalPlayer(playerId);
 
-      await this.signalr.joinBoard(state.boardId, playerId, displayName, true, seed);
+      await this.signalr.joinBoard(state.boardId, displayName, true, seed);
 
       await this.router.navigate(['/lobby', state.boardId]);
     } catch (e) {
@@ -96,12 +92,11 @@ export class LobbyComponent {
     const boardId = this.joinForm.controls.boardId.value.trim();
     const displayName = this.joinForm.controls.displayName.value;
     const seed = this.joinForm.controls.seed.value;
-    const playerId = this.suggestedPlayerId();
 
     try {
       this.isBusy.set(true);
 
-      await this.signalr.joinBoard(boardId, playerId, displayName, false, seed);
+      await this.signalr.joinBoard(boardId, displayName, false, seed);
 
       await this.router.navigate(['/lobby', boardId]);
     } catch (e) {

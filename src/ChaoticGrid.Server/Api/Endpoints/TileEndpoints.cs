@@ -1,5 +1,6 @@
 using ChaoticGrid.Server.Api.Dtos;
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
 using ChaoticGrid.Server.Domain.Enums;
 using ChaoticGrid.Server.Domain.Interfaces;
 using ChaoticGrid.Server.Infrastructure.Hubs;
@@ -34,21 +35,22 @@ public static class TileEndpoints
         {
             return TypedResults.Forbid();
         }
+
+        if (!TryGetUserId(user, out var userId))
+        {
+            return TypedResults.Forbid();
+        }
+
         var board = await boards.GetByIdAsync(new BoardId(request.BoardId), ct);
         if (board is null)
         {
             return TypedResults.NotFound();
         }
 
-        if (board.Players.All(p => p.Id != request.PlayerId))
-        {
-            return TypedResults.BadRequest();
-        }
-
         Tile tile;
         try
         {
-            tile = board.AddTileSuggestion(request.PlayerId, request.Text);
+            tile = board.AddTileSuggestion(userId, request.Text);
         }
         catch
         {
@@ -57,7 +59,7 @@ public static class TileEndpoints
 
         await boards.UpdateAsync(board, ct);
 
-        var dto = new TileDto(tile.Id, tile.Text, tile.IsApproved, tile.IsConfirmed, tile.Status, tile.CreatedByUserId);
+        var dto = new TileDto(tile.Id, tile.Text, tile.IsApproved, tile.IsConfirmed, tile.Status, tile.CreatedByPlayerId.Value);
 
         // Broadcast: tile suggested (intended for approvers/admins). We'll broadcast to the board group for now.
         await hub.Clients.Group(GetGroupName(request.BoardId)).TileSuggested(dto);
@@ -108,7 +110,7 @@ public static class TileEndpoints
         await boards.UpdateAsync(board, ct);
 
         var tile = board.Tiles.First(t => t.Id == tileId);
-        var dto = new TileDto(tile.Id, tile.Text, tile.IsApproved, tile.IsConfirmed, tile.Status, tile.CreatedByUserId);
+        var dto = new TileDto(tile.Id, tile.Text, tile.IsApproved, tile.IsConfirmed, tile.Status, tile.CreatedByPlayerId.Value);
 
         await hub.Clients.Group(GetGroupName(request.BoardId)).TileModerated(dto);
         await hub.Clients.Group(GetGroupName(request.BoardId)).BoardStateUpdated(ToBoardDto(board));
@@ -139,17 +141,17 @@ public static class TileEndpoints
             : board.Tiles.Where(t => t.Status != TileStatus.Pending).ToList();
 
         var result = tiles
-            .Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByUserId))
+            .Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByPlayerId.Value))
             .ToArray();
 
         return TypedResults.Ok(result);
     }
 
-    private static bool TryGetUserId(ClaimsPrincipal user, out Guid userId)
+    private static bool TryGetUserId(ClaimsPrincipal user, out UserId userId)
     {
-        userId = Guid.Empty;
+        userId = default;
         var raw = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
-        return Guid.TryParse(raw, out userId);
+        return Guid.TryParse(raw, out var parsed) && parsed != Guid.Empty && (userId = new UserId(parsed)) != default;
     }
 
     private static bool HasPermission(ClaimsPrincipal user, GamePermission required)
@@ -172,7 +174,7 @@ public static class TileEndpoints
             Name: board.Name,
             Status: board.Status,
             MinimumApprovedTilesToStart: board.MinimumApprovedTilesToStart,
-            Tiles: board.Tiles.Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByUserId)).ToArray(),
-            Players: board.Players.Select(p => new PlayerDto(p.Id, p.DisplayName, p.GridTileIds.ToArray(), p.Roles.ToArray(), p.SilencedUntilUtc)).ToArray());
+            Tiles: board.Tiles.Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByPlayerId.Value)).ToArray(),
+            Players: board.Players.Select(p => new PlayerDto(p.Id.Value, p.DisplayName, p.GridTileIds.ToArray(), p.Roles.ToArray(), p.SilencedUntilUtc)).ToArray());
     }
 }

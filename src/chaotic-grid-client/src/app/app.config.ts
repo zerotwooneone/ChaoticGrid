@@ -17,7 +17,15 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => {
         return () =>
           new HubConnectionBuilder()
-            .withUrl(`${window.location.origin}/hubs/game`)
+            .withUrl(`${window.location.origin}/hubs/game`, {
+              accessTokenFactory: () => {
+                try {
+                  return localStorage.getItem('cg.jwt') ?? '';
+                } catch {
+                  return '';
+                }
+              }
+            })
             .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
             .configureLogging(LogLevel.Information)
             .build();

@@ -21,6 +21,6 @@ public sealed record BoardStateDto(
     IReadOnlyList<TileDto> Tiles,
     IReadOnlyList<PlayerDto> Players);
 
-public sealed record TileDto(Guid Id, string Text, bool IsApproved, bool IsConfirmed, TileStatus Status, Guid CreatedByUserId);
+public sealed record TileDto(Guid Id, string Text, bool IsApproved, bool IsConfirmed, TileStatus Status, Guid CreatedByPlayerId);
 
 public sealed record PlayerDto(Guid Id, string DisplayName, IReadOnlyList<Guid> GridTileIds, IReadOnlyList<string> Roles, DateTime? SilencedUntilUtc);

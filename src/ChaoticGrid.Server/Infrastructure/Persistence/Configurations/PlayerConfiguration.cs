@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
 using ChaoticGrid.Server.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -18,7 +19,16 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Id)
+            .HasConversion(
+                id => id.Value,
+                value => new PlayerId(value))
             .ValueGeneratedNever();
+
+        builder.Property(p => p.OwnerUserId)
+            .HasConversion(
+                id => id.Value,
+                value => new UserId(value))
+            .IsRequired();
 
         builder.Property(p => p.DisplayName)
             .HasMaxLength(80)
@@ -49,5 +59,7 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
                 id => id.Value,
                 value => new BoardId(value));
         builder.HasIndex("BoardId");
+
+        builder.HasIndex(p => p.OwnerUserId);
     }
 }

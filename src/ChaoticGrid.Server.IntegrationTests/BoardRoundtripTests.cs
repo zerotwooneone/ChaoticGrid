@@ -31,10 +31,10 @@ public sealed class BoardRoundtripTests : IClassFixture<TestAppFactory>
         Assert.Equal("Test", created!.name);
         Assert.False(string.IsNullOrWhiteSpace(created.boardId));
 
-        var playerId = Guid.NewGuid().ToString();
+        var userId = Guid.NewGuid().ToString();
         var joinResp = await _client.PostAsJsonAsync($"/boards/{created.boardId}/join", new
         {
-            playerId,
+            userId,
             displayName = "P1",
             isHost = false,
             seed = (int?)null
@@ -43,7 +43,9 @@ public sealed class BoardRoundtripTests : IClassFixture<TestAppFactory>
 
         var joined = await joinResp.Content.ReadFromJsonAsync<BoardStateDto>();
         Assert.NotNull(joined);
-        Assert.Contains(joined!.players, p => p.id == playerId);
+        Assert.NotEmpty(joined!.players);
+        var joinedPlayerId = joined.players[0].id;
+        Assert.False(string.IsNullOrWhiteSpace(joinedPlayerId));
 
         var getResp = await _client.GetAsync($"/boards/{created.boardId}");
         getResp.EnsureSuccessStatusCode();
@@ -51,7 +53,7 @@ public sealed class BoardRoundtripTests : IClassFixture<TestAppFactory>
         var fetched = await getResp.Content.ReadFromJsonAsync<BoardStateDto>();
         Assert.NotNull(fetched);
         Assert.Equal(created.boardId, fetched!.boardId);
-        Assert.Contains(fetched.players, p => p.id == playerId);
+        Assert.Contains(fetched.players, p => p.id == joinedPlayerId);
     }
 
     private sealed class BoardStateDto
@@ -71,7 +73,7 @@ public sealed class BoardRoundtripTests : IClassFixture<TestAppFactory>
         public required bool isApproved { get; init; }
         public required bool isConfirmed { get; init; }
         public required int status { get; init; }
-        public required string createdByUserId { get; init; }
+        public required string createdByPlayerId { get; init; }
     }
 
     private sealed class PlayerDto

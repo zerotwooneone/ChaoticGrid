@@ -100,7 +100,6 @@ export class SuggestionBoxComponent {
       const tile = await firstValueFrom(
         this.api.suggestTile({
           boardId: this.boardId,
-          playerId,
           text: this.form.controls.text.value.trim()
         })
       );

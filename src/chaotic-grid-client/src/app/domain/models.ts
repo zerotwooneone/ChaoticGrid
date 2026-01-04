@@ -39,7 +39,7 @@ export interface TileDto {
   isApproved: boolean;
   isConfirmed: boolean;
   status: TileStatus;
-  createdByUserId: string;
+  createdByPlayerId: string;
 }
 
 export interface PlayerDto {
@@ -60,7 +60,7 @@ export interface BoardStateDto {
 }
 
 export interface JoinBoardRequest {
-  playerId: string;
+  userId: string;
   displayName: string;
   isHost: boolean;
   seed?: number;

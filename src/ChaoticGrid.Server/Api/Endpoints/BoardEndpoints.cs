@@ -1,5 +1,6 @@
 using ChaoticGrid.Server.Api.Dtos;
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
+using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
 using ChaoticGrid.Server.Domain.Enums;
 using ChaoticGrid.Server.Domain.Interfaces;
 using ChaoticGrid.Server.Infrastructure.Hubs;
@@ -43,7 +44,7 @@ public static class BoardEndpoints
             return TypedResults.NotFound();
         }
 
-        board.AddPlayer(request.PlayerId, request.DisplayName, isHost: request.IsHost, seed: request.Seed);
+        board.Join(new UserId(request.UserId), request.DisplayName, isHost: request.IsHost, seed: request.Seed);
         await repo.UpdateAsync(board, ct);
 
         return TypedResults.Ok(ToDto(board));
@@ -148,8 +149,8 @@ public static class BoardEndpoints
             return TypedResults.NotFound();
         }
 
-        // For now, treat invite acceptance as joining the game as a Player record.
-        board.AddPlayer(userId, nickname, isHost: false, seed: null);
+        // Invite acceptance joins the game as the authenticated user.
+        board.Join(new UserId(userId), nickname, isHost: false, seed: null);
         await repo.UpdateAsync(board, ct);
 
         return TypedResults.Ok(ToDto(board));
@@ -173,9 +174,9 @@ public static class BoardEndpoints
             Name: board.Name,
             Status: board.Status,
             MinimumApprovedTilesToStart: board.MinimumApprovedTilesToStart,
-            Tiles: board.Tiles.Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByUserId)).ToArray(),
-            Players: board.Players.Select(p => new PlayerDto(p.Id, p.DisplayName, p.GridTileIds.ToArray(), p.Roles.ToArray(), p.SilencedUntilUtc)).ToArray());
+            Tiles: board.Tiles.Select(t => new TileDto(t.Id, t.Text, t.IsApproved, t.IsConfirmed, t.Status, t.CreatedByPlayerId.Value)).ToArray(),
+            Players: board.Players.Select(p => new PlayerDto(p.Id.Value, p.DisplayName, p.GridTileIds.ToArray(), p.Roles.ToArray(), p.SilencedUntilUtc)).ToArray());
     }
 
-    public sealed record JoinBoardRequest(Guid PlayerId, string DisplayName, bool IsHost, int? Seed);
+    public sealed record JoinBoardRequest(Guid UserId, string DisplayName, bool IsHost, int? Seed);
 }

@@ -84,48 +84,34 @@ export class SignalRService {
     }
   }
 
-  async joinBoard(boardId: string, playerId: string, displayName: string, isHost: boolean, seed?: number): Promise<void> {
+  async joinBoard(boardId: string, displayName: string, isHost: boolean, seed?: number): Promise<string> {
     await this.ensureConnected();
-    this.store.setLocalPlayer(playerId);
 
-    await this.connection!.invoke('JoinBoard', boardId, playerId, displayName, isHost, seed ?? null);
+    const playerId = await this.connection!.invoke<string>('JoinBoard', boardId, displayName, isHost, seed ?? null);
+    this.store.setLocalPlayer(playerId);
+    return playerId;
   }
 
   async proposeTile(boardId: string, text: string): Promise<void> {
     await this.ensureConnected();
 
-    const playerId = this.store.localPlayerId();
-    if (!playerId) {
-      throw new Error('Cannot propose tile without a local player id.');
-    }
-
-    await this.connection!.invoke('ProposeTile', boardId, playerId, text);
+    await this.connection!.invoke('ProposeTile', boardId, text);
   }
 
-  async castVote(boardId: string, vote: VoteRequest): Promise<void> {
+  async castVote(boardId: string, tileId: string): Promise<void> {
     await this.ensureConnected();
-    await this.connection!.invoke('CastVote', boardId, vote);
+    await this.connection!.invoke('CastVote', boardId, tileId);
   }
 
   async proposeCompletion(boardId: string, tileId: string): Promise<void> {
     await this.ensureConnected();
 
-    const playerId = this.store.localPlayerId();
-    if (!playerId) {
-      throw new Error('Cannot propose completion without a local player id.');
-    }
-
-    await this.connection!.invoke('ProposeCompletion', boardId, playerId, tileId);
+    await this.connection!.invoke('ProposeCompletion', boardId, tileId);
   }
 
   async castCompletionVote(boardId: string, vote: CompletionVoteRequest): Promise<void> {
     await this.ensureConnected();
 
-    const playerId = this.store.localPlayerId();
-    if (!playerId) {
-      throw new Error('Cannot cast completion vote without a local player id.');
-    }
-
-    await this.connection!.invoke('CastCompletionVote', boardId, playerId, vote);
+    await this.connection!.invoke('CastCompletionVote', boardId, vote);
   }
 }

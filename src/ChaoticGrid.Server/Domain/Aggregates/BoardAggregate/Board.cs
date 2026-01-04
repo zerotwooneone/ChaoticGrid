@@ -1,4 +1,5 @@
 using ChaoticGrid.Server.Domain.Entities;
+using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
 using ChaoticGrid.Server.Domain.Shared;
 using ChaoticGrid.Server.Domain.ValueObjects;
 
@@ -53,16 +54,19 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         MinimumApprovedTilesToStart = minimumApprovedTilesToStart;
     }
 
-    public Tile AddTileSuggestion(Guid createdByUserId, string text)
+    public Tile AddTileSuggestion(UserId userId, string text)
     {
         EnsureNotFinished();
 
-        if (Players.All(p => p.Id != createdByUserId))
+        var player = Players.FirstOrDefault(p => p.OwnerUserId == userId)
+            ?? throw new InvalidOperationException("Player does not exist.");
+
+        if (player.IsSilenced(DateTime.UtcNow))
         {
-            throw new InvalidOperationException("Player does not exist.");
+            throw new InvalidOperationException("Player is silenced.");
         }
 
-        var tile = Tile.CreateSuggestion(Id, text, createdByUserId);
+        var tile = Tile.CreateSuggestion(Id, text, player.Id);
         Tiles.Add(tile);
         return tile;
     }
@@ -80,13 +84,10 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         var tile = Tiles[index];
         Tiles[index] = tile.Reject();
 
-        if (tile.CreatedByUserId != Guid.Empty)
+        var proposer = Players.FirstOrDefault(p => p.Id == tile.CreatedByPlayerId);
+        if (proposer is not null)
         {
-            var proposer = Players.FirstOrDefault(p => p.Id == tile.CreatedByUserId);
-            if (proposer is not null)
-            {
-                proposer.SilenceUntil(utcNow.Add(silenceDuration));
-            }
+            proposer.SilenceUntil(utcNow.Add(silenceDuration));
         }
     }
 
@@ -103,7 +104,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         Tiles[index] = Tiles[index].Approve();
     }
 
-    public void CastVote(Guid playerId, Guid tileId, DateTime utcNow)
+    public void CastVote(PlayerId playerId, Guid tileId, DateTime utcNow)
     {
         EnsureNotFinished();
 
@@ -170,16 +171,17 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         }
     }
 
-    public Player AddPlayer(Guid playerId, string displayName, bool isHost = false, int? seed = null)
+    public Player Join(UserId userId, string displayName, bool isHost = false, int? seed = null)
     {
         EnsureNotFinished();
 
-        if (Players.Any(p => p.Id == playerId))
+        var existing = Players.FirstOrDefault(p => p.OwnerUserId == userId);
+        if (existing is not null)
         {
-            throw new InvalidOperationException("Player already exists.");
+            return existing;
         }
 
-        var player = Player.Create(playerId, displayName, isHost);
+        var player = Player.Create(PlayerId.New(), userId, displayName, isHost);
         Players.Add(player);
 
         if (Status == BoardStatus.Active)
@@ -202,7 +204,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
 
         foreach (var player in Players)
         {
-            player.AssignRandomizedGrid(approved, seed is null ? null : seed + player.Id.GetHashCode());
+            player.AssignRandomizedGrid(approved, seed is null ? null : seed + player.Id.Value.GetHashCode());
         }
 
         Status = BoardStatus.Active;
@@ -218,7 +220,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         Status = BoardStatus.Finished;
     }
 
-    public PermissionSet GetPermissions(Guid? userId)
+    public PermissionSet GetPermissions(UserId? userId)
     {
         if (userId is null)
         {
@@ -231,7 +233,7 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
                 CanApproveTiles: false);
         }
 
-        var player = Players.FirstOrDefault(p => p.Id == userId.Value);
+        var player = Players.FirstOrDefault(p => p.OwnerUserId == userId.Value);
         if (player is null)
         {
             return new PermissionSet(

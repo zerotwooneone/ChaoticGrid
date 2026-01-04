@@ -3,24 +3,24 @@ using ChaoticGrid.Server.Domain.Enums;
 
 namespace ChaoticGrid.Server.Domain.Entities;
 
-public sealed record Tile(Guid Id, BoardId BoardId, string Text, TileStatus Status, Guid CreatedByUserId, bool IsConfirmed)
+public sealed record Tile(Guid Id, BoardId BoardId, string Text, TileStatus Status, PlayerId CreatedByPlayerId, bool IsConfirmed)
 {
     public bool IsApproved => Status == TileStatus.Approved;
 
-    public static Tile CreateSuggestion(BoardId boardId, string text, Guid createdByUserId)
+    public static Tile CreateSuggestion(BoardId boardId, string text, PlayerId createdByPlayerId)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             throw new ArgumentException("Tile text cannot be empty.", nameof(text));
         }
 
-        if (createdByUserId == Guid.Empty)
+        if (createdByPlayerId.Value == Guid.Empty)
         {
-            throw new ArgumentException("CreatedByUserId is required.", nameof(createdByUserId));
+            throw new ArgumentException("CreatedByPlayerId is required.", nameof(createdByPlayerId));
         }
 
         var normalized = text.Trim();
-        return new Tile(Guid.NewGuid(), boardId, normalized, TileStatus.Pending, createdByUserId, IsConfirmed: false);
+        return new Tile(Guid.NewGuid(), boardId, normalized, TileStatus.Pending, createdByPlayerId, IsConfirmed: false);
     }
 
     public Tile Approve() => this with { Status = TileStatus.Approved };
