@@ -11,6 +11,12 @@
     "changeOrigin": true,
     "logLevel": "debug"
   },
+  "/tiles": {
+    "target": "https://localhost:7055",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/hubs": {
     "target": "https://localhost:7055",
     "secure": false,
