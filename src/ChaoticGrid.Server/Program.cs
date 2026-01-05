@@ -71,6 +71,10 @@ app.MapAuthEndpoints();
 
 app.MapBoardEndpoints();
 
+app.MapPlayerContextEndpoints();
+
+app.MapMeEndpoints();
+
 app.MapTileEndpoints();
 
 app.MapGet("/health", () => TypedResults.Ok(new { Status = "OK" }));

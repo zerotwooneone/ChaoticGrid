@@ -26,6 +26,11 @@ public sealed class GameHub(IBoardRepository repo, MatchManager matches) : Hub<I
             throw new HubException("Board not found.");
         }
 
+        if (!board.GetMyContext(userId).EffectivePermissions.HasFlag(BoardPermission.SuggestTile))
+        {
+            throw new HubException("Forbidden.");
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(boardId));
 
         var player = board.Join(userId, displayName, isHost, seed);
@@ -61,7 +66,8 @@ public sealed class GameHub(IBoardRepository repo, MatchManager matches) : Hub<I
 
         var match = matches.GetOrCreate(boardId);
 
-        if (HasPermission(Context.User, GamePermission.ForceConfirm))
+        var perms = board.GetMyContext(userId).EffectivePermissions;
+        if (perms.HasFlag(BoardPermission.ForceCompleteTile))
         {
             var resolution = match.ForceConfirm(playerId, tileId);
             board.ConfirmTile(resolution.TileId);
@@ -186,19 +192,4 @@ public sealed class GameHub(IBoardRepository repo, MatchManager matches) : Hub<I
         return Guid.TryParse(raw, out var parsed) && parsed != Guid.Empty && (userId = new UserId(parsed)) != default;
     }
 
-    private static bool HasPermission(ClaimsPrincipal? user, GamePermission required)
-    {
-        if (user is null)
-        {
-            return false;
-        }
-
-        var raw = user.FindFirstValue("x-permissions");
-        if (!long.TryParse(raw, out var perms))
-        {
-            return false;
-        }
-
-        return (((GamePermission)perms) & required) == required;
-    }
 }

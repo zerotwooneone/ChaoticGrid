@@ -7,6 +7,7 @@ import { authGuard } from './core/auth/auth.guard';
 export const routes: Routes = [
   { path: '', component: LobbyComponent },
   { path: 'lobby/:boardId', loadComponent: () => import('./ui/pages/lobby/draft-lobby.component').then(m => m.DraftLobbyComponent), canActivate: [authGuard] },
+  { path: 'me', loadComponent: () => import('./ui/pages/me/me.component').then(m => m.MeComponent), canActivate: [authGuard] },
   { path: 'setup', loadComponent: () => import('./ui/pages/setup/setup.component').then(m => m.SetupComponent) },
   { path: 'invite/:token', loadComponent: () => import('./ui/pages/invite/invite.component').then(m => m.InviteComponent) },
   { path: 'invite', loadComponent: () => import('./ui/pages/invite/invite.component').then(m => m.InviteComponent) },

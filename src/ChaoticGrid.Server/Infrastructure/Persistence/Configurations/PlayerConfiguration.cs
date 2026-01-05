@@ -36,6 +36,14 @@ public sealed class PlayerConfiguration : IEntityTypeConfiguration<Player>
 
         builder.Property(p => p.SilencedUntilUtc);
 
+        builder.Property(p => p.AssignedRoleId);
+
+        builder.Property(p => p.AllowPermissionOverrides)
+            .HasConversion<long>();
+
+        builder.Property(p => p.DenyPermissionOverrides)
+            .HasConversion<long>();
+
         builder.Property(p => p.GridTileIds)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonOptions),

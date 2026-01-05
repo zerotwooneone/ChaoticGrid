@@ -1,5 +1,6 @@
 using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
 using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
+using ChaoticGrid.Server.Domain.Enums;
 
 namespace ChaoticGrid.Server.Domain.Entities;
 
@@ -14,6 +15,12 @@ public sealed class Player(PlayerId id, UserId ownerUserId, string displayName)
     public PlayerId Id { get; } = id;
 
     public UserId OwnerUserId { get; } = ownerUserId;
+
+    public Guid? AssignedRoleId { get; private set; }
+
+    public BoardPermission AllowPermissionOverrides { get; private set; } = BoardPermission.None;
+
+    public BoardPermission DenyPermissionOverrides { get; private set; } = BoardPermission.None;
 
     public string DisplayName { get; } = string.IsNullOrWhiteSpace(displayName)
         ? throw new ArgumentException("Display name cannot be empty.", nameof(displayName))
@@ -32,6 +39,22 @@ public sealed class Player(PlayerId id, UserId ownerUserId, string displayName)
         }
 
         return player;
+    }
+
+    public void AssignRole(Guid roleId)
+    {
+        AssignedRoleId = roleId;
+    }
+
+    public void SetPermissionOverrides(BoardPermission allowOverrides, BoardPermission denyOverrides)
+    {
+        AllowPermissionOverrides = allowOverrides;
+        DenyPermissionOverrides = denyOverrides;
+    }
+
+    public BoardPermission GetEffectivePermissions(BoardPermission rolePermissions)
+    {
+        return (rolePermissions | AllowPermissionOverrides) & ~DenyPermissionOverrides;
     }
 
     public void SilenceUntil(DateTime utcUntil)

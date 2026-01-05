@@ -23,7 +23,14 @@ public sealed class BoardRoundtripTests : IClassFixture<TestAppFactory>
     [Fact]
     public async Task CreateJoinGetBoard_ShouldRoundtrip()
     {
-        var createResp = await _client.PostAsJsonAsync("/boards", new { name = "Test" });
+        var creatorUserId = Guid.NewGuid();
+        using var createReq = new HttpRequestMessage(HttpMethod.Post, "/boards")
+        {
+            Content = JsonContent.Create(new { name = "Test" })
+        };
+        createReq.Headers.Add("x-test-user", creatorUserId.ToString());
+
+        var createResp = await _client.SendAsync(createReq);
         createResp.EnsureSuccessStatusCode();
 
         var created = await createResp.Content.ReadFromJsonAsync<BoardStateDto>();

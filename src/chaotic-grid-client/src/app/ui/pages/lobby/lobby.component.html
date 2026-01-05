@@ -6,6 +6,12 @@
     </mat-card-header>
 
     <mat-card-content>
+      @if (isAuthed()) {
+        <div class="top-actions">
+          <a mat-button routerLink="/me">Profile</a>
+        </div>
+      }
+
       @if (error()) {
         <div class="error">{{ error() }}</div>
       }

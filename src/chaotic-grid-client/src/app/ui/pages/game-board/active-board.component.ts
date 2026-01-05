@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, u
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { firstValueFrom } from 'rxjs';
 
@@ -10,11 +13,12 @@ import { GameStore } from '../../../core/store/game.store';
 import { SignalRService } from '../../../core/services/signalr.service';
 import { BingoGridComponent } from '../../components/bingo-grid/bingo-grid.component';
 import { VoteToastComponent } from '../../components/vote-toast/vote-toast.component';
+import { PlayerPermissionsDialogComponent } from '../../components/player-permissions-dialog/player-permissions-dialog.component';
 
 @Component({
   selector: 'app-active-board',
   standalone: true,
-  imports: [MatToolbarModule, MatButtonModule, MatCardModule, RouterLink, BingoGridComponent, VoteToastComponent],
+  imports: [MatToolbarModule, MatButtonModule, MatCardModule, MatIconModule, MatTooltipModule, RouterLink, BingoGridComponent, VoteToastComponent],
   template: `
     <mat-toolbar color="primary" class="toolbar">
       <div class="title">
@@ -26,6 +30,10 @@ import { VoteToastComponent } from '../../components/vote-toast/vote-toast.compo
       </div>
 
       <span class="spacer"></span>
+
+      <button mat-icon-button matTooltip="My permissions" (click)="openPermissions()">
+        <mat-icon>shield</mat-icon>
+      </button>
 
       <a mat-button [routerLink]="['/lobby', boardId()]">Lobby</a>
     </mat-toolbar>
@@ -102,6 +110,7 @@ export class ActiveBoardComponent {
   private readonly api = inject(ApiService);
   private readonly store = inject(GameStore);
   private readonly signalr = inject(SignalRService);
+  private readonly dialog = inject(MatDialog);
 
   readonly boardId = signal<string>(this.route.snapshot.paramMap.get('boardId') ?? '');
 
@@ -150,11 +159,22 @@ export class ActiveBoardComponent {
         const state = await firstValueFrom(this.api.getBoardState(id));
         this.store.setBoardState(state);
 
+        await this.store.syncPlayerContext(id);
+
         if (state.status === 0) {
           void this.router.navigate(['/lobby', id]);
         }
       });
     });
+  }
+
+  openPermissions(): void {
+    const id = this.boardId();
+    if (!id) {
+      return;
+    }
+
+    this.dialog.open(PlayerPermissionsDialogComponent, { data: { boardId: id } });
   }
 
   async onTileClicked(tileId: string | null): Promise<void> {

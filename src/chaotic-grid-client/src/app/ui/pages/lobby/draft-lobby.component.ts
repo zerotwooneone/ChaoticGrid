@@ -4,23 +4,31 @@ import { firstValueFrom } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/auth/auth.service';
-import { GamePermission } from '../../../core/models/permissions.enum';
 import { GameStore } from '../../../core/store/game.store';
+import { BoardPermission } from '../../../domain/models';
 import { SuggestionBoxComponent } from '../../components/suggestion-box/suggestion-box.component';
 import { ModerationQueueComponent } from '../../components/moderation-queue/moderation-queue.component';
+import { PlayerPermissionsDialogComponent } from '../../components/player-permissions-dialog/player-permissions-dialog.component';
 
 @Component({
   selector: 'app-draft-lobby',
   standalone: true,
-  imports: [MatToolbarModule, MatButtonModule, MatCardModule, RouterLink, SuggestionBoxComponent, ModerationQueueComponent],
+  imports: [MatToolbarModule, MatButtonModule, MatCardModule, MatIconModule, MatTooltipModule, RouterLink, SuggestionBoxComponent, ModerationQueueComponent],
   template: `
     <mat-toolbar color="primary" class="toolbar">
       <div class="title">Draft Lobby</div>
       <span class="spacer"></span>
+
+      <button mat-icon-button matTooltip="My permissions" (click)="openPermissions()">
+        <mat-icon>shield</mat-icon>
+      </button>
+
       <a mat-button routerLink="/">Home</a>
     </mat-toolbar>
 
@@ -106,8 +114,8 @@ export class DraftLobbyComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthService);
   private readonly store = inject(GameStore);
+  private readonly dialog = inject(MatDialog);
 
   readonly boardId = signal(this.route.snapshot.paramMap.get('boardId') ?? '');
 
@@ -129,7 +137,13 @@ export class DraftLobbyComponent {
       return false;
     }
 
-    return this.auth.hasPermission(GamePermission.ModifyBoard) && this.approvedCount() >= s.minimumApprovedTilesToStart;
+    const ctx = this.store.playerContext();
+    if (!ctx) {
+      return false;
+    }
+
+    const canModify = (ctx.effectivePermissions & BoardPermission.ModifyBoardSettings) === BoardPermission.ModifyBoardSettings;
+    return canModify && this.approvedCount() >= s.minimumApprovedTilesToStart;
   });
 
   constructor() {
@@ -149,6 +163,8 @@ export class DraftLobbyComponent {
         const state = await firstValueFrom(this.api.getBoardState(id));
         this.store.setBoardState(state);
 
+        await this.store.syncPlayerContext(id);
+
         // Pull tiles from /tiles so ApproveTile users get pending tiles too.
         const tiles = await firstValueFrom(this.api.getTiles(id));
         for (const t of tiles) {
@@ -156,6 +172,15 @@ export class DraftLobbyComponent {
         }
       });
     });
+  }
+
+  openPermissions(): void {
+    const id = this.boardId();
+    if (!id) {
+      return;
+    }
+
+    this.dialog.open(PlayerPermissionsDialogComponent, { data: { boardId: id } });
   }
 
   async start(): Promise<void> {

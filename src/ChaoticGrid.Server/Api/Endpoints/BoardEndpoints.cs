@@ -3,6 +3,7 @@ using ChaoticGrid.Server.Domain.Aggregates.BoardAggregate;
 using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
 using ChaoticGrid.Server.Domain.Enums;
 using ChaoticGrid.Server.Domain.Interfaces;
+using ChaoticGrid.Server.Domain.Services;
 using ChaoticGrid.Server.Infrastructure.Hubs;
 using ChaoticGrid.Server.Infrastructure.Persistence;
 using ChaoticGrid.Server.Infrastructure.Security;
@@ -19,7 +20,7 @@ public static class BoardEndpoints
     {
         var group = endpoints.MapGroup("/boards");
 
-        group.MapPost("/", CreateBoard);
+        group.MapPost("/", CreateBoard).RequireAuthorization();
         group.MapPost("/{boardId:guid}/join", JoinBoard);
         group.MapPost("/{boardId:guid}/invite", CreateInvite).RequireAuthorization();
         group.MapPost("/join", JoinByInvite).RequireAuthorization();
@@ -29,9 +30,30 @@ public static class BoardEndpoints
         return endpoints;
     }
 
-    private static async Task<Ok<BoardStateDto>> CreateBoard(CreateBoardRequest request, IBoardRepository repo, CancellationToken ct)
+    private static async Task<Results<Ok<BoardStateDto>, ForbidHttpResult, BadRequest>> CreateBoard(
+        CreateBoardRequest request,
+        ClaimsPrincipal user,
+        BoardCreationService boardCreation,
+        IBoardRepository repo,
+        CancellationToken ct)
     {
-        var board = Board.Create(request.Name);
+        if (!Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub"), out var userId) || userId == Guid.Empty)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var nickname = user.FindFirstValue("nickname") ?? "Host";
+
+        Board board;
+        try
+        {
+            board = await boardCreation.CreateBoard(userId, request.Name, nickname, ct);
+        }
+        catch
+        {
+            return TypedResults.BadRequest();
+        }
+
         await repo.AddAsync(board, ct);
         return TypedResults.Ok(ToDto(board));
     }
@@ -63,7 +85,12 @@ public static class BoardEndpoints
         IHubContext<GameHub, IGameClient> hub,
         CancellationToken ct)
     {
-        if (!HasPermission(user, GamePermission.ModifyBoard))
+        if (!TryGetUserId(user, out var userId))
+        {
+            return TypedResults.Forbid();
+        }
+
+        if (!HasBoardPermission(db, userId, boardId, BoardPermission.ModifyBoardSettings, ct))
         {
             return TypedResults.Forbid();
         }
@@ -103,7 +130,18 @@ public static class BoardEndpoints
         InviteService invites,
         CancellationToken ct)
     {
-        if (!HasPermission(user, GamePermission.ManageBoardRoles))
+        if (!TryGetUserId(user, out var userId))
+        {
+            return TypedResults.Forbid();
+        }
+
+        var boardForAuth = await repo.GetByIdAsync(new BoardId(boardId), ct);
+        if (boardForAuth is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!HasBoardPermission(boardForAuth, userId, BoardPermission.ManageBoardRoles))
         {
             return TypedResults.Forbid();
         }
@@ -156,15 +194,28 @@ public static class BoardEndpoints
         return TypedResults.Ok(ToDto(board));
     }
 
-    private static bool HasPermission(ClaimsPrincipal user, GamePermission required)
+    private static bool TryGetUserId(ClaimsPrincipal user, out UserId userId)
     {
-        var raw = user.FindFirstValue("x-permissions");
-        if (!long.TryParse(raw, out var perms))
+        userId = default;
+        var raw = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
+        return Guid.TryParse(raw, out var parsed) && parsed != Guid.Empty && (userId = new UserId(parsed)) != default;
+    }
+
+    private static bool HasBoardPermission(Board board, UserId userId, BoardPermission required)
+    {
+        var ctx = board.GetMyContext(userId);
+        return ctx.EffectivePermissions.HasFlag(required);
+    }
+
+    private static bool HasBoardPermission(AppDbContext db, UserId userId, Guid boardId, BoardPermission required, CancellationToken ct)
+    {
+        var board = db.Boards.FirstOrDefault(b => b.Id == new BoardId(boardId));
+        if (board is null)
         {
             return false;
         }
 
-        return (((GamePermission)perms) & required) == required;
+        return HasBoardPermission(board, userId, required);
     }
 
     private static BoardStateDto ToDto(Board board)

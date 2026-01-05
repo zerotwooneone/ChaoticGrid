@@ -31,11 +31,6 @@ public static class TileEndpoints
         IHubContext<GameHub, IGameClient> hub,
         CancellationToken ct)
     {
-        if (!HasPermission(user, GamePermission.SuggestTile))
-        {
-            return TypedResults.Forbid();
-        }
-
         if (!TryGetUserId(user, out var userId))
         {
             return TypedResults.Forbid();
@@ -45,6 +40,11 @@ public static class TileEndpoints
         if (board is null)
         {
             return TypedResults.NotFound();
+        }
+
+        if (!board.GetMyContext(userId).EffectivePermissions.HasFlag(BoardPermission.SuggestTile))
+        {
+            return TypedResults.Forbid();
         }
 
         Tile tile;
@@ -76,15 +76,20 @@ public static class TileEndpoints
         IHubContext<GameHub, IGameClient> hub,
         CancellationToken ct)
     {
-        if (!HasPermission(user, GamePermission.ApproveTile))
-        {
-            return TypedResults.Forbid();
-        }
-
         var board = await boards.GetByIdAsync(new BoardId(request.BoardId), ct);
         if (board is null)
         {
             return TypedResults.NotFound();
+        }
+
+        if (!TryGetUserId(user, out var userId))
+        {
+            return TypedResults.Forbid();
+        }
+
+        if (!board.GetMyContext(userId).EffectivePermissions.HasFlag(BoardPermission.ApproveTile))
+        {
+            return TypedResults.Forbid();
         }
 
         try
@@ -124,7 +129,7 @@ public static class TileEndpoints
         IBoardRepository boards,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out _))
+        if (!TryGetUserId(user, out var userId))
         {
             return TypedResults.Forbid();
         }
@@ -135,7 +140,7 @@ public static class TileEndpoints
             return TypedResults.NotFound();
         }
 
-        var canApprove = HasPermission(user, GamePermission.ApproveTile);
+        var canApprove = board.GetMyContext(userId).EffectivePermissions.HasFlag(BoardPermission.ApproveTile);
         var tiles = canApprove
             ? board.Tiles
             : board.Tiles.Where(t => t.Status != TileStatus.Pending).ToList();
@@ -152,17 +157,6 @@ public static class TileEndpoints
         userId = default;
         var raw = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
         return Guid.TryParse(raw, out var parsed) && parsed != Guid.Empty && (userId = new UserId(parsed)) != default;
-    }
-
-    private static bool HasPermission(ClaimsPrincipal user, GamePermission required)
-    {
-        var raw = user.FindFirstValue("x-permissions");
-        if (!long.TryParse(raw, out var perms))
-        {
-            return false;
-        }
-
-        return (((GamePermission)perms) & required) == required;
     }
 
     private static string GetGroupName(Guid boardId) => $"board:{boardId:D}";

@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { BoardStateDto, CompletionVoteStartedDto, PlayerDto, TileDto, VoteRequest } from '../../domain/models';
+import { BoardStateDto, CompletionVoteStartedDto, PlayerContextDto, PlayerDto, TileDto, VoteRequest } from '../../domain/models';
 import { ApiService } from '../services/api.service';
 
 @Injectable({ providedIn: 'root' })
@@ -11,11 +11,13 @@ export class GameStore {
   private readonly localPlayerIdInternal = signal<string | null>(null);
   private readonly pendingVotesInternal = signal<VoteRequest[]>([]);
   private readonly pendingCompletionVotesInternal = signal<CompletionVoteStartedDto[]>([]);
+  private readonly playerContextInternal = signal<PlayerContextDto | null>(null);
 
   readonly boardState = this.boardStateInternal.asReadonly();
   readonly localPlayerId = this.localPlayerIdInternal.asReadonly();
   readonly pendingVotes = this.pendingVotesInternal.asReadonly();
   readonly pendingCompletionVotes = this.pendingCompletionVotesInternal.asReadonly();
+  readonly playerContext = this.playerContextInternal.asReadonly();
 
   readonly boardId = computed(() => this.boardStateInternal()?.boardId ?? null);
 
@@ -38,6 +40,10 @@ export class GameStore {
     this.boardStateInternal.set(state);
   }
 
+  setPlayerContext(ctx: PlayerContextDto | null): void {
+    this.playerContextInternal.set(ctx);
+  }
+
   async syncState(): Promise<void> {
     const boardId = this.boardId();
     if (!boardId) {
@@ -46,6 +52,20 @@ export class GameStore {
 
     const state = await firstValueFrom(this.api.getBoardState(boardId));
     this.setBoardState(state);
+  }
+
+  async syncPlayerContext(boardId?: string): Promise<void> {
+    const id = boardId ?? this.boardId();
+    if (!id) {
+      return;
+    }
+
+    try {
+      const ctx = await firstValueFrom(this.api.getMyBoardContext(id));
+      this.setPlayerContext(ctx);
+    } catch {
+      // Ignore; next refresh will correct.
+    }
   }
 
   upsertTile(tile: TileDto): void {
@@ -72,6 +92,7 @@ export class GameStore {
     this.boardStateInternal.set(null);
     this.pendingVotesInternal.set([]);
     this.pendingCompletionVotesInternal.set([]);
+    this.playerContextInternal.set(null);
   }
 
   onVoteRequested(vote: VoteRequest): void {

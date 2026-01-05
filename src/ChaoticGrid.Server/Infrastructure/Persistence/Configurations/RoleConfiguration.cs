@@ -27,10 +27,10 @@ public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
             .IsUnique();
 
         builder.HasData(
-            new Role(ObserverRoleId, "Observer", GamePermission.None),
-            new Role(PlayerRoleId, "Player", GamePermission.SuggestTile | GamePermission.CastVote),
-            new Role(ModeratorRoleId, "Moderator", (GamePermission.SuggestTile | GamePermission.CastVote) | GamePermission.ApproveTile | GamePermission.ManageBoardRoles),
-            new Role(AdminRoleId, "Admin", GamePermission.All)
+            new Role(ObserverRoleId, "Observer", SystemPermission.Login),
+            new Role(PlayerRoleId, "Board Creator", SystemPermission.Login | SystemPermission.CreateBoard),
+            new Role(ModeratorRoleId, "System Moderator", SystemPermission.Login | SystemPermission.CreateBoard | SystemPermission.ManageSystemUsers),
+            new Role(AdminRoleId, "Admin", SystemPermission.All)
         );
     }
 }

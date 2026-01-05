@@ -1,4 +1,10 @@
 {
+  "/api": {
+    "target": "https://localhost:7055",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/boards": {
     "target": "https://localhost:7055",
     "secure": false,

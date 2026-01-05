@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { SignalRService } from '../../../core/services/signalr.service';
 import { GameStore } from '../../../core/store/game.store';
 
@@ -18,6 +19,7 @@ import { GameStore } from '../../../core/store/game.store';
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -31,10 +33,13 @@ import { GameStore } from '../../../core/store/game.store';
 })
 export class LobbyComponent {
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
   private readonly signalr = inject(SignalRService);
   private readonly store = inject(GameStore);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+
+  readonly isAuthed = this.auth.currentUser;
 
   readonly isBusy = signal(false);
   readonly error = signal<string | null>(null);

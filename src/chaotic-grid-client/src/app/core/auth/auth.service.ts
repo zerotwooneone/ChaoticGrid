@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-import { GamePermission } from '../models/permissions.enum';
+import { SystemPermission } from '../models/permissions.enum';
 
 export interface CurrentUser {
   id: string;
@@ -47,7 +47,7 @@ export class AuthService {
     }
   }
 
-  hasPermission(required: GamePermission): boolean {
+  hasPermission(required: SystemPermission): boolean {
     const user = this.currentUser();
     if (!user) {
       return false;

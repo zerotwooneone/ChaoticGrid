@@ -1,5 +1,6 @@
 using ChaoticGrid.Server.Domain.Entities;
 using ChaoticGrid.Server.Domain.Aggregates.IdentityAggregate;
+using ChaoticGrid.Server.Domain.Enums;
 using ChaoticGrid.Server.Domain.Shared;
 using ChaoticGrid.Server.Domain.ValueObjects;
 
@@ -17,6 +18,8 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
 
     public List<Player> Players { get; private set; } = [];
 
+    public List<BoardRole> BoardRoles { get; private set; } = [];
+
     public int MinimumApprovedTilesToStart { get; private set; } = 24;
 
     public int VotesRequiredToConfirm { get; private set; } = 2;
@@ -28,6 +31,53 @@ public sealed class Board(BoardId id, string name) : Entity<BoardId>(id)
         var board = new Board(BoardId.New(), name);
         board.SetMinimumApprovedTilesToStart(minimumApprovedTilesToStart);
         return board;
+    }
+
+    public BoardRole CreateRole(string name, BoardPermission defaultPermissions)
+    {
+        EnsureNotFinished();
+
+        var role = BoardRole.Create(name, defaultPermissions);
+        BoardRoles.Add(role);
+        return role;
+    }
+
+    public void AssignRole(UserId userId, Guid roleId)
+    {
+        EnsureNotFinished();
+
+        var player = Players.FirstOrDefault(p => p.OwnerUserId == userId)
+            ?? throw new InvalidOperationException("Player does not exist.");
+
+        if (!BoardRoles.Any(r => r.Id == roleId))
+        {
+            throw new InvalidOperationException("Role does not exist.");
+        }
+
+        player.AssignRole(roleId);
+    }
+
+    public PlayerContext GetMyContext(UserId userId)
+    {
+        var player = Players.FirstOrDefault(p => p.OwnerUserId == userId)
+            ?? throw new InvalidOperationException("Player does not exist.");
+
+        BoardRole? role = null;
+        if (player.AssignedRoleId is not null)
+        {
+            role = BoardRoles.FirstOrDefault(r => r.Id == player.AssignedRoleId.Value);
+        }
+
+        var rolePermissions = role?.DefaultPermissions ?? BoardPermission.None;
+        var effective = player.GetEffectivePermissions(rolePermissions);
+
+        return new PlayerContext(
+            RoleId: role?.Id,
+            RoleName: role?.Name,
+            RolePermissions: rolePermissions,
+            AllowOverrides: player.AllowPermissionOverrides,
+            DenyOverrides: player.DenyPermissionOverrides,
+            EffectivePermissions: effective);
     }
 
     public void Rename(string name)

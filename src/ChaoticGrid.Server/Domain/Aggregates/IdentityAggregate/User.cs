@@ -20,9 +20,9 @@ public sealed class User : Entity<Guid>
         Nickname = nickname;
     }
 
-    public GamePermission GetEffectivePermissions()
+    public SystemPermission GetEffectivePermissions()
     {
-        var perms = GamePermission.None;
+        var perms = SystemPermission.None;
         foreach (var role in GlobalRoles)
         {
             perms |= role.Permissions;

@@ -47,6 +47,15 @@ public sealed class BoardConfiguration : IEntityTypeConfiguration<Board>
                 v => v.Aggregate(0, (acc, next) => HashCode.Combine(acc, next.GetHashCode())),
                 v => v.ToList()));
 
+        builder.Property(b => b.BoardRoles)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonOptions),
+                v => JsonSerializer.Deserialize<List<BoardRole>>(v, JsonOptions) ?? new List<BoardRole>())
+            .Metadata.SetValueComparer(new ValueComparer<List<BoardRole>>(
+                (a, b) => a.SequenceEqual(b),
+                v => v.Aggregate(0, (acc, next) => HashCode.Combine(acc, next.GetHashCode())),
+                v => v.ToList()));
+
         builder.HasMany(b => b.Tiles)
             .WithOne()
             .HasForeignKey(t => t.BoardId)

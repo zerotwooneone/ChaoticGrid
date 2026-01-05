@@ -8,9 +8,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/auth/auth.service';
-import { GamePermission } from '../../../core/models/permissions.enum';
 import { GameStore } from '../../../core/store/game.store';
+import { BoardPermission } from '../../../domain/models';
 
 @Component({
   selector: 'app-suggestion-box',
@@ -66,7 +65,6 @@ import { GameStore } from '../../../core/store/game.store';
 })
 export class SuggestionBoxComponent {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthService);
   private readonly store = inject(GameStore);
   private readonly fb = inject(FormBuilder);
 
@@ -75,7 +73,14 @@ export class SuggestionBoxComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly canSuggest = computed(() => this.auth.hasPermission(GamePermission.SuggestTile));
+  readonly canSuggest = computed(() => {
+    const ctx = this.store.playerContext();
+    if (!ctx) {
+      return false;
+    }
+
+    return (ctx.effectivePermissions & BoardPermission.SuggestTile) === BoardPermission.SuggestTile;
+  });
 
   readonly form = this.fb.nonNullable.group({
     text: ['', [Validators.required, Validators.maxLength(200)]]

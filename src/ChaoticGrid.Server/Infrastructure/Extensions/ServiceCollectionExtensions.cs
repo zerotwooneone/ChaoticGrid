@@ -20,6 +20,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IBoardRepository, SqliteBoardRepository>();
         services.AddScoped<IUserRepository, SqliteUserRepository>();
+        services.AddScoped<IRoleTemplateRepository, SqliteRoleTemplateRepository>();
+
+        services.AddScoped<BoardCreationService>();
 
         services.AddSingleton<GridGeneratorService>();
         services.AddSingleton<MatchManager>();

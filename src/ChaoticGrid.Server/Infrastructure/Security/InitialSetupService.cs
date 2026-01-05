@@ -39,9 +39,19 @@ public sealed class InitialSetupService(
         Directory.CreateDirectory(TokenDirectoryPath);
 
         var token = Guid.NewGuid().ToString("D");
-        await File.WriteAllTextAsync(TokenFilePath, token, cancellationToken);
+        try
+        {
+            await using var stream = new FileStream(TokenFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            await using var writer = new StreamWriter(stream);
+            await writer.WriteAsync(token.AsMemory(), cancellationToken);
+            await writer.FlushAsync(cancellationToken);
 
-        logger.LogWarning("Initial setup required. Setup token written to {TokenFilePath}", TokenFilePath);
+            logger.LogWarning("Initial setup required. Setup token written to {TokenFilePath}", TokenFilePath);
+        }
+        catch (IOException)
+        {
+            // Another process/test host likely created the token concurrently.
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -58,7 +68,16 @@ public sealed class InitialSetupService(
             return null;
         }
 
-        var expected = (await File.ReadAllTextAsync(TokenFilePath, cancellationToken)).Trim();
+        string expected;
+        try
+        {
+            expected = (await File.ReadAllTextAsync(TokenFilePath, cancellationToken)).Trim();
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+
         if (!string.Equals(expected, token.Trim(), StringComparison.Ordinal))
         {
             return null;
@@ -83,7 +102,14 @@ public sealed class InitialSetupService(
         db.Set<User>().Add(user);
         await db.SaveChangesAsync(cancellationToken);
 
-        File.Delete(TokenFilePath);
+        try
+        {
+            File.Delete(TokenFilePath);
+        }
+        catch (IOException)
+        {
+            // Ignore; token can be deleted later.
+        }
 
         return jwtTokenGenerator.Generate(user);
     }

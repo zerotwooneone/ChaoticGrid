@@ -14,6 +14,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Role> Roles => Set<Role>();
 
+    public DbSet<RoleTemplate> RoleTemplates => Set<RoleTemplate>();
+
     public DbSet<Player> Players => Set<Player>();
 
     public DbSet<Tile> Tiles => Set<Tile>();
@@ -23,6 +25,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.ApplyConfiguration(new BoardConfiguration());
         modelBuilder.ApplyConfiguration(new PlayerConfiguration());
         modelBuilder.ApplyConfiguration(new RoleConfiguration());
+        modelBuilder.ApplyConfiguration(new RoleTemplateConfiguration());
         modelBuilder.ApplyConfiguration(new TileConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
 

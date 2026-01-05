@@ -1,7 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BoardStateDto, CreateBoardRequest, JoinBoardRequest, TileDto } from '../../domain/models';
+import {
+  BoardStateDto,
+  CreateBoardRequest,
+  CreateRoleTemplateRequest,
+  JoinBoardRequest,
+  MySystemContextDto,
+  PlayerContextDto,
+  RoleTemplateDto,
+  TileDto,
+  UpdatePermissionOverrideRequest,
+  UpdateRoleTemplateRequest
+} from '../../domain/models';
 import { AuthStatusResponse, SetupRequest, SetupResponse } from '../../domain/auth-models';
 import { ModerateTileRequest, SuggestTileRequest } from '../../domain/tile-models';
 
@@ -48,5 +59,33 @@ export class ApiService {
 
   startBoard(boardId: string): Observable<BoardStateDto> {
     return this.http.post<BoardStateDto>(`/boards/${boardId}/start`, {});
+  }
+
+  getMyBoardContext(boardId: string): Observable<PlayerContextDto> {
+    return this.http.get<PlayerContextDto>(`/api/boards/${boardId}/my-context`);
+  }
+
+  updateMyBoardPermissionOverrides(boardId: string, request: UpdatePermissionOverrideRequest): Observable<PlayerContextDto> {
+    return this.http.put<PlayerContextDto>(`/api/boards/${boardId}/players/me/permissions`, request);
+  }
+
+  getMySystemContext(): Observable<MySystemContextDto> {
+    return this.http.get<MySystemContextDto>('/api/me/system-context');
+  }
+
+  getMyRoleTemplates(): Observable<RoleTemplateDto[]> {
+    return this.http.get<RoleTemplateDto[]>('/api/me/role-templates');
+  }
+
+  createRoleTemplate(request: CreateRoleTemplateRequest): Observable<RoleTemplateDto> {
+    return this.http.post<RoleTemplateDto>('/api/me/role-templates', request);
+  }
+
+  updateRoleTemplate(templateId: string, request: UpdateRoleTemplateRequest): Observable<RoleTemplateDto> {
+    return this.http.put<RoleTemplateDto>(`/api/me/role-templates/${templateId}`, request);
+  }
+
+  deleteRoleTemplate(templateId: string): Observable<void> {
+    return this.http.delete<void>(`/api/me/role-templates/${templateId}`);
   }
 }

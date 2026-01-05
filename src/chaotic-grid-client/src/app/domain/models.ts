@@ -4,6 +4,18 @@ export enum BoardStatus {
   Finished = 2
 }
 
+export enum BoardPermission {
+  None = 0,
+  SuggestTile = 1 << 0,
+  CastVote = 1 << 1,
+  ApproveTile = 1 << 2,
+  ModifyBoardSettings = 1 << 3,
+  ManageBoardRoles = 1 << 4,
+  ForceCompleteTile = 1 << 5,
+  SelfCompleteTile = 1 << 6,
+  ModifyOwnPermissions = 1 << 7
+}
+
 export enum TileStatus {
   Pending = 0,
   Approved = 1,
@@ -64,4 +76,39 @@ export interface JoinBoardRequest {
   displayName: string;
   isHost: boolean;
   seed?: number;
+}
+
+export interface PlayerContextDto {
+  roleId: string | null;
+  roleName: string | null;
+  rolePermissions: number;
+  allowOverrides: number;
+  denyOverrides: number;
+  effectivePermissions: number;
+}
+
+export interface UpdatePermissionOverrideRequest {
+  allowOverrideMask: number;
+  denyOverrideMask: number;
+}
+
+export interface MySystemContextDto {
+  nickname: string;
+  systemPermissions: number;
+}
+
+export interface RoleTemplateDto {
+  id: string;
+  name: string;
+  defaultBoardPermissions: number;
+}
+
+export interface CreateRoleTemplateRequest {
+  name: string;
+  defaultBoardPermissions: number;
+}
+
+export interface UpdateRoleTemplateRequest {
+  name: string;
+  defaultBoardPermissions: number;
 }

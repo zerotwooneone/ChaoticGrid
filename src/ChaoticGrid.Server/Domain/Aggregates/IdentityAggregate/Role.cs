@@ -7,9 +7,9 @@ public sealed class Role : Entity<Guid>
 {
     public string Name { get; private set; }
 
-    public GamePermission Permissions { get; private set; }
+    public SystemPermission Permissions { get; private set; }
 
-    public Role(Guid id, string name, GamePermission permissions)
+    public Role(Guid id, string name, SystemPermission permissions)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(name))

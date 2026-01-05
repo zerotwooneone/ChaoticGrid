@@ -5,10 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 
 import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/auth/auth.service';
-import { GamePermission } from '../../../core/models/permissions.enum';
 import { GameStore } from '../../../core/store/game.store';
-import { TileStatus } from '../../../domain/models';
+import { BoardPermission, TileStatus } from '../../../domain/models';
 
 @Component({
   selector: 'app-moderation-queue',
@@ -83,7 +81,6 @@ import { TileStatus } from '../../../domain/models';
 })
 export class ModerationQueueComponent {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthService);
   private readonly store = inject(GameStore);
 
   @Input({ required: true }) boardId!: string;
@@ -91,7 +88,14 @@ export class ModerationQueueComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
 
-  readonly canApprove = computed(() => this.auth.hasPermission(GamePermission.ApproveTile));
+  readonly canApprove = computed(() => {
+    const ctx = this.store.playerContext();
+    if (!ctx) {
+      return false;
+    }
+
+    return (ctx.effectivePermissions & BoardPermission.ApproveTile) === BoardPermission.ApproveTile;
+  });
 
   readonly pendingTiles = computed(() => this.store.tiles().filter(t => t.status === TileStatus.Pending));
 
